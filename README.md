@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
@@ -53,4 +52,3 @@ Join our community of developers creating universal apps.
 # UnboxedU
 
 Demo path: login → add task → complete → open box → see item in collection.
->>>>>>> 461ffe7063067ac11a844faa7b52b85c4e3dfca6
