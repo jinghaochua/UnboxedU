@@ -1,0 +1,39 @@
+type User @table {
+  username: String!
+  email: String!
+  createdAt: Timestamp!
+  currencyAmount: Int!
+  avatarUrl: String
+  studyStreak: Int
+}
+
+type StudyTask @table {
+  user: User
+  title: String!
+  description: String!
+  dueDate: Timestamp!
+  isCompleted: Boolean!
+  createdAt: Timestamp!
+}
+
+type BlindBox @table {
+  name: String!
+  cost: Int!
+  rarityDistribution: String! # Storing as a JSON string
+  description: String
+}
+
+type CollectibleItem @table {
+  blindBox: BlindBox
+  name: String!
+  rarity: String!
+  imageUrl: String!
+  description: String
+}
+
+type UserCollectionItem @table(key: ["user", "collectibleItem"]) {
+  user: User!
+  collectibleItem: CollectibleItem!
+  acquiredAt: Timestamp!
+  quantity: Int!
+}
