@@ -1,7 +1,40 @@
 import { router } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { signOut } from "firebase/auth";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import { useAuth } from "@/hooks/use-auth";
+import { auth } from "@/lib/firebase";
 
 export default function HomeScreen() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
+
+  if (user) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.subtitle}>{user.email}</Text>
+
+        <TouchableOpacity style={styles.button} onPress={() => signOut(auth)}>
+          <Text style={styles.buttonText}>Log out</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>UnboxedU</Text>
@@ -36,6 +69,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 50,
+  },
+
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#666",
+    marginBottom: 40,
+    marginTop: -30,
   },
 
   button: {

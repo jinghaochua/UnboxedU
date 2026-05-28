@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     StyleSheet,
     Text,
@@ -10,23 +11,38 @@ import {
 
 import { router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../app/lib/firebase";
+
+import { useAuth } from "@/hooks/use-auth";
+import { auth } from "@/lib/firebase";
 
 export default function LoginScreen() {
+  const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/");
+    }
+  }, [user, loading]);
 
   const handleLogin = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-
-      Alert.alert("Success", "Logged in successfully", [
-        { text: "OK", onPress: () => router.replace("/") },
-      ]);
-    } catch (error: any) {
-      Alert.alert("Login Error", error.message);
+      router.replace("/");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Login failed";
+      Alert.alert("Login Error", message);
     }
   };
+
+  if (loading || user) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -37,6 +53,8 @@ export default function LoginScreen() {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
 
       <TextInput

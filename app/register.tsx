@@ -1,32 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../app/lib/firebase";
+
+import { useAuth } from "@/hooks/use-auth";
+import { auth } from "@/lib/firebase";
 
 export default function RegisterScreen() {
+  const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/");
+    }
+  }, [user, loading]);
 
   const handleRegister = async () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-
-      Alert.alert("Success", "Account created");
-
       router.replace("/");
-    } catch (error: any) {
-      Alert.alert("Register Error", error.message);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Registration failed";
+      Alert.alert("Register Error", message);
     }
   };
+
+  if (loading || user) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#10B981" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -37,6 +54,8 @@ export default function RegisterScreen() {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
 
       <TextInput
