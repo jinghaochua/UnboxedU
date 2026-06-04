@@ -35,15 +35,26 @@ const FEATURES = [
   {
     emoji: "🖼️",
     title: "Collection gallery",
-    description:
-      "Show off your pulls in a personal gallery. Collect them all.",
+    description: "Show off your pulls in a personal gallery. Collect them all.",
   },
 ];
 
 const STEPS = [
-  { step: "01", title: "Create your account", body: "Sign up free and set your study goals." },
-  { step: "02", title: "Complete study tasks", body: "Earn coins every time you finish a task." },
-  { step: "03", title: "Unbox & collect", body: "Open blind boxes and grow your gallery." },
+  {
+    step: "01",
+    title: "Create your account",
+    body: "Sign up free and set your study goals.",
+  },
+  {
+    step: "02",
+    title: "Complete study tasks",
+    body: "Earn coins every time you finish a task.",
+  },
+  {
+    step: "03",
+    title: "Unbox & collect",
+    body: "Open blind boxes and grow your gallery.",
+  },
 ];
 
 export function WebHomepage() {
@@ -120,8 +131,9 @@ export function WebHomepage() {
             </Text>
 
             <Text style={styles.heroSubtitle}>
-              UnboxedU combines a task manager, coin rewards, blind box openings,
-              and a collectible gallery — so every study session feels like a win.
+              UnboxedU combines a task manager, coin rewards, blind box
+              openings, and a collectible gallery — so every study session feels
+              like a win.
             </Text>
 
             <View style={styles.heroActions}>
@@ -144,7 +156,9 @@ export function WebHomepage() {
                     style={styles.secondaryBtn}
                     onPress={() => router.push("/login")}
                   >
-                    <Text style={styles.secondaryBtnText}>I have an account</Text>
+                    <Text style={styles.secondaryBtnText}>
+                      I have an account
+                    </Text>
                   </Pressable>
                 </>
               )}
@@ -171,7 +185,8 @@ export function WebHomepage() {
         <View style={[styles.section, isWide && styles.sectionWide]}>
           <Text style={styles.sectionTitle}>Everything in one place</Text>
           <Text style={styles.sectionSubtitle}>
-            Built for students who want structure, motivation, and a little surprise.
+            Built for students who want structure, motivation, and a little
+            surprise.
           </Text>
           <View style={[styles.featureGrid, isWide && styles.featureGridWide]}>
             {FEATURES.map((feature) => (
@@ -184,7 +199,13 @@ export function WebHomepage() {
           </View>
         </View>
 
-        <View style={[styles.section, styles.sectionTint, isWide && styles.sectionWide]}>
+        <View
+          style={[
+            styles.section,
+            styles.sectionTint,
+            isWide && styles.sectionWide,
+          ]}
+        >
           <Text style={styles.sectionTitle}>How it works</Text>
           <View style={[styles.steps, isWide && styles.stepsWide]}>
             {STEPS.map((item) => (
