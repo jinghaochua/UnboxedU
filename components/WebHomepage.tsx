@@ -1,11 +1,13 @@
+import { useMemo } from "react";
+
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -17,57 +19,66 @@ const FEATURES = [
   {
     label: "Tasks",
     title: "Track study work",
-    description:
-      "Add lectures, quizzes, and revision sessions. Check them off when you finish.",
+    body: "Keep lectures, quizzes, and revision in one place.",
   },
   {
     label: "Coins",
-    title: "Earn rewards",
-    description:
-      "Every completed task gives you coins. Use them to keep your progress going.",
+    title: "See your balance",
+    body: "Check how many coins you have before opening a box.",
   },
   {
     label: "Boxes",
     title: "Open mystery boxes",
-    description:
-      "Spend coins on blind boxes and get random study-themed items.",
+    body: "Spend coins and unlock a random reward.",
   },
   {
     label: "Gallery",
-    title: "Save your items",
-    description:
-      "Keep the items you unlock in one place and view your collection anytime.",
+    title: "View collection",
+    body: "Store the items you unlock and review them anytime.",
+  },
+] as const;
+
+const TASKS = [
+  {
+    title: "Review lecture notes",
+    detail: "Finish before dinner",
+    coins: 15,
+  },
+  {
+    title: "Complete quiz practice",
+    detail: "Try to score above 80%",
+    coins: 25,
+  },
+  {
+    title: "Read one chapter",
+    detail: "Focus on the key concepts",
+    coins: 20,
   },
 ];
 
-const STEPS = [
-  {
-    step: "01",
-    title: "Create an account",
-    body: "Sign up and set up your profile.",
-  },
-  {
-    step: "02",
-    title: "Complete tasks",
-    body: "Finish study tasks to earn coins.",
-  },
-  {
-    step: "03",
-    title: "Open boxes",
-    body: "Use your coins to unlock items.",
-  },
-];
+const COLLECTION = ["Starter badge", "Study card", "Rare item"];
 
 export function WebHomepage() {
-  const { width } = useWindowDimensions();
-  const { user } = useAuth();
-  const isWide = width >= 900;
+  const { user, loading } = useAuth();
+
+  const headline = useMemo(() => {
+    if (user) return "Welcome back.\nContinue your tasks.";
+    return "Study work,\nwith a simple reward system";
+  }, [user]);
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.page}>
       <View style={styles.navWrap}>
-        <View style={[styles.nav, isWide && styles.navWide]}>
-          <Pressable onPress={() => {}} style={styles.logoRow}>
+        <View style={styles.nav}>
+          <Pressable style={styles.logoRow} onPress={() => {}}>
             <View style={styles.logoMark} />
             <Text style={styles.logoText}>UnboxedU</Text>
           </Pressable>
@@ -82,10 +93,7 @@ export function WebHomepage() {
                 <Text style={styles.navEmail} numberOfLines={1}>
                   {user.email}
                 </Text>
-                <Pressable
-                  style={styles.navGhost}
-                  onPress={() => signOut(auth)}
-                >
+                <Pressable style={styles.navGhost} onPress={() => signOut(auth)}>
                   <Text style={styles.navGhostText}>Log out</Text>
                 </Pressable>
               </>
@@ -114,19 +122,15 @@ export function WebHomepage() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.hero, isWide && styles.heroWide]}>
-          <View style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
+        <View style={styles.hero}>
+          <View style={styles.heroCopy}>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
                 {user ? "Signed in" : "Study rewards app"}
               </Text>
             </View>
 
-            <Text style={[styles.heroTitle, isWide && styles.heroTitleWide]}>
-              {user
-                ? "Welcome back.\nContinue your tasks."
-                : "Study work,\nwith a simple reward system"}
-            </Text>
+            <Text style={styles.heroTitle}>{headline}</Text>
 
             <Text style={styles.heroSubtitle}>
               UnboxedU keeps your tasks, coins, boxes, and collection in one
@@ -160,7 +164,7 @@ export function WebHomepage() {
             </View>
           </View>
 
-          <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
+          <View style={styles.heroVisual}>
             <View style={styles.mockCard}>
               <Text style={styles.mockLabel}>Today</Text>
               <MockTask title="Review lecture notes" coins={15} done />
@@ -172,52 +176,109 @@ export function WebHomepage() {
               </View>
             </View>
 
-            <View style={[styles.mockBox, isWide && styles.mockBoxFloat]}>
-              <View style={styles.boxTop} />
-              <Text style={styles.mockBoxLabel}>Mystery box</Text>
-            </View>
+            {user ? (
+              <View style={styles.mockBox}>
+                <View style={styles.boxTop} />
+                <Text style={styles.mockBoxLabel}>Mystery box</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
-        <View style={[styles.section, isWide && styles.sectionWide]}>
+      {!user && (
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>What the app does</Text>
           <Text style={styles.sectionSubtitle}>
             Built for students who want a simple way to keep track of study
             tasks and rewards.
           </Text>
 
-          <View style={[styles.featureGrid, isWide && styles.featureGridWide]}>
+          <View style={styles.featureGrid}>
             {FEATURES.map((feature) => (
               <View key={feature.title} style={styles.featureCard}>
                 <Text style={styles.featureLabel}>{feature.label}</Text>
                 <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureBody}>{feature.description}</Text>
+                <Text style={styles.featureBody}>{feature.body}</Text>
               </View>
             ))}
           </View>
         </View>
+      )}
 
-        <View
-          style={[
-            styles.section,
-            styles.sectionTint,
-            isWide && styles.sectionWide,
-          ]}
-        >
+        {user ? (
+          <>
+            <View style={[styles.section, styles.sectionTint]}>
+              <Text style={styles.sectionTitle}>Your dashboard</Text>
+              <Text style={styles.sectionSubtitle}>
+                This is the logged-in view. From here you can jump to the blind
+                box screen.
+              </Text>
+
+              <View style={styles.dashboardGrid}>
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoLabel}>Tasks</Text>
+                  {TASKS.map((task) => (
+                    <View key={task.title} style={styles.taskRow}>
+                      <View style={styles.taskTextWrap}>
+                        <Text style={styles.taskTitle}>{task.title}</Text>
+                        <Text style={styles.taskDetail}>{task.detail}</Text>
+                      </View>
+                      <Text style={styles.taskCoins}>+{task.coins}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Pressable
+                  style={styles.boxCard}
+                  onPress={() => router.push("/mystery")}
+                >
+                  <View style={styles.boxVisual} />
+                  <Text style={styles.boxTitle}>Mystery box</Text>
+                  <Text style={styles.boxText}>
+                    Tap to open the blind box screen.
+                  </Text>
+                  <Text style={styles.boxLink}>Open box</Text>
+                </Pressable>
+
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoLabel}>Gallery</Text>
+                  {COLLECTION.map((item) => (
+                    <View key={item} style={styles.galleryRow}>
+                      <View style={styles.galleryThumb} />
+                      <Text style={styles.galleryText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </>
+        ) : null}
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>How it works</Text>
 
-          <View style={[styles.steps, isWide && styles.stepsWide]}>
-            {STEPS.map((item) => (
-              <View key={item.step} style={styles.stepCard}>
-                <Text style={styles.stepNumber}>{item.step}</Text>
-                <Text style={styles.stepTitle}>{item.title}</Text>
-                <Text style={styles.stepBody}>{item.body}</Text>
-              </View>
-            ))}
+          <View style={styles.steps}>
+            <View style={styles.stepCard}>
+              <Text style={styles.stepNumber}>01</Text>
+              <Text style={styles.stepTitle}>Create an account</Text>
+              <Text style={styles.stepBody}>Sign up and set up your profile.</Text>
+            </View>
+
+            <View style={styles.stepCard}>
+              <Text style={styles.stepNumber}>02</Text>
+              <Text style={styles.stepTitle}>Complete tasks</Text>
+              <Text style={styles.stepBody}>Finish study tasks to earn coins.</Text>
+            </View>
+
+            <View style={styles.stepCard}>
+              <Text style={styles.stepNumber}>03</Text>
+              <Text style={styles.stepTitle}>Open boxes</Text>
+              <Text style={styles.stepBody}>Use your coins to unlock items.</Text>
+            </View>
           </View>
         </View>
 
-        <View style={[styles.cta, isWide && styles.ctaWide]}>
+        <View style={styles.cta}>
           <Text style={styles.ctaTitle}>Start building your streak</Text>
           <Text style={styles.ctaSubtitle}>
             Keep your study tasks in one place and use your progress to unlock
@@ -234,7 +295,7 @@ export function WebHomepage() {
           ) : null}
         </View>
 
-        <View style={[styles.footer, isWide && styles.sectionWide]}>
+        <View style={styles.footer}>
           <View style={styles.footerMark} />
           <Text style={styles.footerLogo}>UnboxedU</Text>
           <Text style={styles.footerCopy}>
@@ -270,6 +331,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
   navWrap: {
     backgroundColor: colors.card,
     borderBottomWidth: 1,
@@ -284,9 +351,6 @@ const styles = StyleSheet.create({
     maxWidth: 1100,
     width: "100%",
     alignSelf: "center",
-  },
-  navWide: {
-    paddingHorizontal: 32,
   },
   logoRow: {
     flexDirection: "row",
@@ -356,19 +420,8 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
-  heroWide: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 48,
-    paddingHorizontal: 32,
-    paddingTop: 64,
-  },
   heroCopy: {
     marginBottom: 32,
-  },
-  heroCopyWide: {
-    flex: 1,
-    marginBottom: 0,
   },
   badge: {
     alignSelf: "flex-start",
@@ -390,10 +443,6 @@ const styles = StyleSheet.create({
     lineHeight: 42,
     marginBottom: 16,
     letterSpacing: -0.4,
-  },
-  heroTitleWide: {
-    fontSize: 46,
-    lineHeight: 54,
   },
   heroSubtitle: {
     fontSize: 16,
@@ -435,10 +484,6 @@ const styles = StyleSheet.create({
   heroVisual: {
     position: "relative",
     minHeight: 280,
-  },
-  heroVisualWide: {
-    flex: 1,
-    minHeight: 320,
   },
   mockCard: {
     backgroundColor: colors.card,
@@ -517,10 +562,6 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     minWidth: 120,
   },
-  mockBoxFloat: {
-    right: -12,
-    bottom: 24,
-  },
   boxTop: {
     width: 30,
     height: 18,
@@ -539,9 +580,6 @@ const styles = StyleSheet.create({
     maxWidth: 1100,
     width: "100%",
     alignSelf: "center",
-  },
-  sectionWide: {
-    paddingHorizontal: 32,
   },
   sectionTint: {
     backgroundColor: colors.primaryLight,
@@ -568,19 +606,12 @@ const styles = StyleSheet.create({
   featureGrid: {
     gap: 16,
   },
-  featureGridWide: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 20,
-  },
   featureCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
-    flex: 1,
-    minWidth: 240,
   },
   featureLabel: {
     fontSize: 12,
@@ -601,22 +632,112 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.textMuted,
   },
+  dashboardGrid: {
+    gap: 16,
+  },
+  infoCard: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 18,
+  },
+  infoLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  taskRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  taskTextWrap: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  taskTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 3,
+  },
+  taskDetail: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  taskCoins: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.coin,
+  },
+  boxCard: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 18,
+    alignItems: "flex-start",
+  },
+  boxVisual: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: colors.primaryLight,
+    marginBottom: 14,
+  },
+  boxTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 6,
+  },
+  boxText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textMuted,
+    marginBottom: 12,
+  },
+  boxLink: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  galleryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  galleryThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight,
+  },
+  galleryText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.text,
+  },
   steps: {
     gap: 16,
     maxWidth: 900,
     alignSelf: "center",
     width: "100%",
   },
-  stepsWide: {
-    flexDirection: "row",
-    gap: 20,
-  },
   stepCard: {
-    flex: 1,
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 24,
-    minWidth: 200,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   stepNumber: {
     fontSize: 13,
@@ -645,9 +766,6 @@ const styles = StyleSheet.create({
     maxWidth: 1100,
     alignSelf: "center",
     width: "100%",
-  },
-  ctaWide: {
-    marginHorizontal: 32,
   },
   ctaTitle: {
     fontSize: 25,
