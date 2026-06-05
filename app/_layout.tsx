@@ -18,5 +18,5 @@ export default function RootLayout() {
     }
   }, [user, loading, segments, router]);
 
-  return <Stack />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
