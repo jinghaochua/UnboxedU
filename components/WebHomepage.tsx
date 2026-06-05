@@ -15,45 +15,46 @@ import { auth } from "@/lib/firebase";
 
 const FEATURES = [
   {
-    emoji: "✅",
-    title: "Study task manager",
+    label: "Tasks",
+    title: "Track study work",
     description:
-      "Plan lectures, quizzes, and reading sessions. Check them off as you go.",
+      "Add lectures, quizzes, and revision sessions. Check them off when you finish.",
   },
   {
-    emoji: "🪙",
-    title: "Coin rewards",
+    label: "Coins",
+    title: "Earn rewards",
     description:
-      "Every completed task earns coins. Stay consistent and watch your balance grow.",
+      "Every completed task gives you coins. Use them to keep your progress going.",
   },
   {
-    emoji: "🎁",
-    title: "Blind box unboxing",
+    label: "Boxes",
+    title: "Open mystery boxes",
     description:
-      "Spend coins on mystery boxes and discover rare study-themed collectibles.",
+      "Spend coins on blind boxes and get random study-themed items.",
   },
   {
-    emoji: "🖼️",
-    title: "Collection gallery",
-    description: "Show off your pulls in a personal gallery. Collect them all.",
+    label: "Gallery",
+    title: "Save your items",
+    description:
+      "Keep the items you unlock in one place and view your collection anytime.",
   },
 ];
 
 const STEPS = [
   {
     step: "01",
-    title: "Create your account",
-    body: "Sign up free and set your study goals.",
+    title: "Create an account",
+    body: "Sign up and set up your profile.",
   },
   {
     step: "02",
-    title: "Complete study tasks",
-    body: "Earn coins every time you finish a task.",
+    title: "Complete tasks",
+    body: "Finish study tasks to earn coins.",
   },
   {
     step: "03",
-    title: "Unbox & collect",
-    body: "Open blind boxes and grow your gallery.",
+    title: "Open boxes",
+    body: "Use your coins to unlock items.",
   },
 ];
 
@@ -67,7 +68,7 @@ export function WebHomepage() {
       <View style={styles.navWrap}>
         <View style={[styles.nav, isWide && styles.navWide]}>
           <Pressable onPress={() => {}} style={styles.logoRow}>
-            <Text style={styles.logoEmoji}>📦</Text>
+            <View style={styles.logoMark} />
             <Text style={styles.logoText}>UnboxedU</Text>
           </Pressable>
 
@@ -75,6 +76,7 @@ export function WebHomepage() {
             <Pressable onPress={() => {}}>
               <Text style={styles.navLink}>Features</Text>
             </Pressable>
+
             {user ? (
               <>
                 <Text style={styles.navEmail} numberOfLines={1}>
@@ -114,26 +116,21 @@ export function WebHomepage() {
       >
         <View style={[styles.hero, isWide && styles.heroWide]}>
           <View style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
-            {user ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Signed in</Text>
-              </View>
-            ) : (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Gamified studying</Text>
-              </View>
-            )}
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {user ? "Signed in" : "Study rewards app"}
+              </Text>
+            </View>
 
             <Text style={[styles.heroTitle, isWide && styles.heroTitleWide]}>
               {user
-                ? "Welcome back,\nready to study?"
-                : "Turn studying into\nsomething you unbox"}
+                ? "Welcome back.\nContinue your tasks."
+                : "Study work,\nwith a simple reward system"}
             </Text>
 
             <Text style={styles.heroSubtitle}>
-              UnboxedU combines a task manager, coin rewards, blind box
-              openings, and a collectible gallery — so every study session feels
-              like a win.
+              UnboxedU keeps your tasks, coins, boxes, and collection in one
+              place. Finish work, earn coins, and unlock items as you go.
             </Text>
 
             <View style={styles.heroActions}>
@@ -150,15 +147,13 @@ export function WebHomepage() {
                     style={styles.primaryBtn}
                     onPress={() => router.push("/register")}
                   >
-                    <Text style={styles.primaryBtnText}>Start for free</Text>
+                    <Text style={styles.primaryBtnText}>Create account</Text>
                   </Pressable>
                   <Pressable
                     style={styles.secondaryBtn}
                     onPress={() => router.push("/login")}
                   >
-                    <Text style={styles.secondaryBtnText}>
-                      I have an account
-                    </Text>
+                    <Text style={styles.secondaryBtnText}>Log in</Text>
                   </Pressable>
                 </>
               )}
@@ -167,31 +162,34 @@ export function WebHomepage() {
 
           <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
             <View style={styles.mockCard}>
-              <Text style={styles.mockLabel}>Today's tasks</Text>
+              <Text style={styles.mockLabel}>Today</Text>
               <MockTask title="Review lecture notes" coins={15} done />
               <MockTask title="Practice quiz" coins={25} />
+              <MockTask title="Read one chapter" coins={20} />
               <View style={styles.mockCoins}>
-                <Text style={styles.mockCoinsEmoji}>🪙</Text>
+                <View style={styles.coinDot} />
                 <Text style={styles.mockCoinsText}>120 coins</Text>
               </View>
             </View>
+
             <View style={[styles.mockBox, isWide && styles.mockBoxFloat]}>
-              <Text style={styles.mockBoxEmoji}>🎁</Text>
+              <View style={styles.boxTop} />
               <Text style={styles.mockBoxLabel}>Mystery box</Text>
             </View>
           </View>
         </View>
 
         <View style={[styles.section, isWide && styles.sectionWide]}>
-          <Text style={styles.sectionTitle}>Everything in one place</Text>
+          <Text style={styles.sectionTitle}>What the app does</Text>
           <Text style={styles.sectionSubtitle}>
-            Built for students who want structure, motivation, and a little
-            surprise.
+            Built for students who want a simple way to keep track of study
+            tasks and rewards.
           </Text>
+
           <View style={[styles.featureGrid, isWide && styles.featureGridWide]}>
             {FEATURES.map((feature) => (
               <View key={feature.title} style={styles.featureCard}>
-                <Text style={styles.featureEmoji}>{feature.emoji}</Text>
+                <Text style={styles.featureLabel}>{feature.label}</Text>
                 <Text style={styles.featureTitle}>{feature.title}</Text>
                 <Text style={styles.featureBody}>{feature.description}</Text>
               </View>
@@ -207,6 +205,7 @@ export function WebHomepage() {
           ]}
         >
           <Text style={styles.sectionTitle}>How it works</Text>
+
           <View style={[styles.steps, isWide && styles.stepsWide]}>
             {STEPS.map((item) => (
               <View key={item.step} style={styles.stepCard}>
@@ -219,10 +218,12 @@ export function WebHomepage() {
         </View>
 
         <View style={[styles.cta, isWide && styles.ctaWide]}>
-          <Text style={styles.ctaTitle}>Ready to unbox your study streak?</Text>
+          <Text style={styles.ctaTitle}>Start building your streak</Text>
           <Text style={styles.ctaSubtitle}>
-            Join UnboxedU and make every completed task count.
+            Keep your study tasks in one place and use your progress to unlock
+            rewards.
           </Text>
+
           {!user ? (
             <Pressable
               style={styles.ctaBtn}
@@ -234,9 +235,10 @@ export function WebHomepage() {
         </View>
 
         <View style={[styles.footer, isWide && styles.sectionWide]}>
-          <Text style={styles.footerLogo}>📦 UnboxedU</Text>
+          <View style={styles.footerMark} />
+          <Text style={styles.footerLogo}>UnboxedU</Text>
           <Text style={styles.footerCopy}>
-            Gamified study app — tasks, coins, blind boxes, and collections.
+            Study tasks, coins, boxes, and collections.
           </Text>
         </View>
       </ScrollView>
@@ -256,8 +258,7 @@ function MockTask({
   return (
     <View style={styles.mockTask}>
       <Text style={[styles.mockTaskTitle, done && styles.mockTaskDone]}>
-        {done ? "✓ " : "○ "}
-        {title}
+        {done ? "Done" : "Open"} · {title}
       </Text>
       <Text style={styles.mockTaskCoins}>+{coins}</Text>
     </View>
@@ -290,15 +291,19 @@ const styles = StyleSheet.create({
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
-  logoEmoji: {
-    fontSize: 24,
+  logoMark: {
+    width: 12,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
   },
   logoText: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "700",
     color: colors.text,
+    letterSpacing: 0.2,
   },
   navLinks: {
     flexDirection: "row",
@@ -379,22 +384,24 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   heroTitle: {
-    fontSize: 36,
-    fontWeight: "800",
+    fontSize: 34,
+    fontWeight: "700",
     color: colors.text,
-    lineHeight: 44,
+    lineHeight: 42,
     marginBottom: 16,
+    letterSpacing: -0.4,
   },
   heroTitleWide: {
-    fontSize: 48,
-    lineHeight: 56,
+    fontSize: 46,
+    lineHeight: 54,
   },
   heroSubtitle: {
-    fontSize: 17,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 26,
     color: colors.textMuted,
     marginBottom: 28,
-    maxWidth: 520,
+    maxWidth: 540,
+    fontWeight: "400",
   },
   heroActions: {
     flexDirection: "row",
@@ -435,21 +442,21 @@ const styles = StyleSheet.create({
   },
   mockCard: {
     backgroundColor: colors.card,
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 20,
     borderWidth: 1,
     borderColor: colors.border,
     shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
   },
   mockLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: colors.textMuted,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 14,
   },
   mockTask: {
@@ -486,8 +493,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-  mockCoinsEmoji: {
-    fontSize: 16,
+  coinDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: colors.coin,
   },
   mockCoinsText: {
     fontWeight: "700",
@@ -511,9 +521,12 @@ const styles = StyleSheet.create({
     right: -12,
     bottom: 24,
   },
-  mockBoxEmoji: {
-    fontSize: 36,
-    marginBottom: 4,
+  boxTop: {
+    width: 30,
+    height: 18,
+    borderRadius: 5,
+    backgroundColor: colors.primaryLight,
+    marginBottom: 10,
   },
   mockBoxLabel: {
     fontSize: 12,
@@ -536,18 +549,21 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   sectionTitle: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 26,
+    fontWeight: "700",
     color: colors.text,
     textAlign: "center",
     marginBottom: 10,
+    letterSpacing: -0.3,
   },
   sectionSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textMuted,
     textAlign: "center",
-    marginBottom: 32,
-    lineHeight: 24,
+    marginBottom: 28,
+    lineHeight: 23,
+    maxWidth: 720,
+    alignSelf: "center",
   },
   featureGrid: {
     gap: 16,
@@ -566,9 +582,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 240,
   },
-  featureEmoji: {
-    fontSize: 28,
-    marginBottom: 12,
+  featureLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 10,
   },
   featureTitle: {
     fontSize: 17,
@@ -630,11 +650,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 32,
   },
   ctaTitle: {
-    fontSize: 26,
-    fontWeight: "800",
+    fontSize: 25,
+    fontWeight: "700",
     color: "#fff",
     textAlign: "center",
     marginBottom: 10,
+    letterSpacing: -0.3,
   },
   ctaSubtitle: {
     fontSize: 16,
@@ -642,6 +663,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 24,
+    maxWidth: 700,
   },
   ctaBtn: {
     backgroundColor: "#fff",
@@ -662,9 +684,16 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
   },
+  footerMark: {
+    width: 14,
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+    marginBottom: 10,
+  },
   footerLogo: {
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: "700",
     color: colors.text,
     marginBottom: 8,
   },
