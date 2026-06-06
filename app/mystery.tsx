@@ -1,18 +1,18 @@
 import { useMemo, useState } from "react";
 
+import { colors } from "@/constants/theme";
+import { openBox } from "@/lib/openBox";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { colors } from "@/constants/theme";
-
-const REWARDS = [
+/*const REWARDS = [
   "Study sticker",
   "Focus badge",
   "Rare card",
   "Extra coin boost",
   "Mini avatar frame",
   "Secret note",
-];
+]; */
 
 export default function MysteryScreen() {
   const [opened, setOpened] = useState(false);
@@ -25,17 +25,23 @@ export default function MysteryScreen() {
     return "Tap to open";
   }, [opened, opening]);
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     if (opening || opened) return;
 
-    setOpening(true);
+    try {
+      setOpening(true);
 
-    setTimeout(() => {
-      const nextReward = REWARDS[Math.floor(Math.random() * REWARDS.length)];
-      setReward(nextReward);
+      const reward = await openBox();
+
+      setTimeout(() => {
+        setReward(reward.name);
+        setOpening(false);
+        setOpened(true);
+      }, 900);
+    } catch (error: any) {
       setOpening(false);
-      setOpened(true);
-    }, 900);
+      alert(error.message);
+    }
   };
 
   return (
