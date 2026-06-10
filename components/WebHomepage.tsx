@@ -16,6 +16,49 @@ import {
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
+import Cockatiel from "../assets/images/cockatiel.svg";
+
+const { width } = useWindowDimensions();
+
+const isWide = width >= 960;
+
+const cockatielAnim = useMemo(() => new Animated.Value(0), []);
+
+useEffect(() => {
+  Animated.loop(
+    Animated.sequence([
+      Animated.timing(cockatielAnim, {
+        toValue: 1,
+        duration: 2600,
+        easing: Easing.inOut(Easing.sin),
+        useNativeDriver: true,
+      }),
+      Animated.timing(cockatielAnim, {
+        toValue: 0,
+        duration: 2600,
+        easing: Easing.inOut(Easing.sin),
+        useNativeDriver: true,
+      }),
+    ])
+  ).start();
+}, [cockatielAnim]);
+
+const cockatielMotionStyle = {
+  transform: [
+    {
+      translateY: cockatielAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, -12],
+      }),
+    },
+    {
+      rotate: cockatielAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["-1deg", "1deg"],
+      }),
+    },
+  ],
+};
 
 const FEATURES = [
   {
@@ -324,6 +367,12 @@ export function WebHomepage() {
             resizeMode="contain"
           />
 
+        <View style={styles.cockatielWrapper}>
+          <Animated.View style={cockatielMotionStyle}>
+            <Cockatiel width={320} height={320} />
+          </Animated.View>
+        </View>
+
           <LinearGradient
             pointerEvents="none"
             colors={["rgba(250,248,247,0.98)", "rgba(250,248,247,0)"]}
@@ -422,7 +471,13 @@ function MiniTask({
 }
 
 const styles = StyleSheet.create({
-  
+  cockatielWrapper: {
+  position: "absolute",
+  right: 300,
+  bottom: 50,
+  zIndex: 10,
+  },
+
   heroVisual: {
     position: "relative",
     minHeight: 360,
