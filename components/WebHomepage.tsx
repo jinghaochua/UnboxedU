@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
 import {
@@ -280,7 +281,7 @@ export function WebHomepage() {
             </Text>
 
             <Text style={styles.heroSubtitle}>
-              UnboxedU turns study tasks into a simple reward loop. Finish work,
+              UnboxedU turns study tasks into a simple reward loop.{`\n`}Finish work,
               earn coins, and unlock things as you go.
             </Text>
 
@@ -301,31 +302,30 @@ export function WebHomepage() {
             </View>
           </View>
 
-          <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
-            <View style={styles.heroArtCard}>
-              <View style={styles.heroArtTopRow}>
-                <View style={styles.heroOrb} />
-                <View style={styles.heroOrbSmall} />
-              </View>
+        <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
+          <Image
+            source={require("../assets/images/top-middle-pic.png")}
+            style={styles.heroImage}
+            resizeMode="contain"
+          />
 
-              <View style={styles.heroChestWrap}>
-                <View style={styles.heroChestGlow} />
-                <View style={styles.heroChest} />
-                <View style={styles.heroChestLid} />
-              </View>
+          <LinearGradient
+            pointerEvents="none"
+            colors={["rgba(250,248,247,0.98)", "rgba(250,248,247,0)"]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.heroFadeLeft}
+          />
 
-              <View style={styles.heroArtBottomRow}>
-                <View style={styles.heroStack}>
-                  <View style={styles.heroStackBook} />
-                  <View style={styles.heroStackBook2} />
-                  <View style={styles.heroStackBook3} />
-                </View>
-
-                <View style={styles.heroCup} />
-              </View>
-            </View>
-          </View>
+          <LinearGradient
+            pointerEvents="none"
+            colors={["rgba(250,248,247,0)", "rgba(250,248,247,0.9)"]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.heroFadeBottom}
+          />
         </View>
+      </View>
 
         <View style={styles.featureStrip}>
           <View style={styles.stripCard}>
@@ -399,7 +399,7 @@ function MiniTask({
   return (
     <View style={styles.miniTask}>
       <Text style={[styles.miniTaskTitle, done && styles.miniTaskDone]}>
-        {done ? "Done" : "Open"} · {title}
+        {done ? "Done" : "Open"} - {title}
       </Text>
       <Text style={styles.miniTaskCoins}>+{coins}</Text>
     </View>
@@ -407,6 +407,34 @@ function MiniTask({
 }
 
 const styles = StyleSheet.create({
+  
+  heroVisual: {
+    position: "relative",
+    minHeight: 360,
+    flex: 1.8,
+    overflow: "hidden",
+  },
+
+  heroImage: {
+    width: "100%",
+    height: 600,
+  },
+
+  heroFadeLeft: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 320,
+  },
+
+  heroFadeBottom: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 120,
+  },
   page: {
     flex: 1,
     backgroundColor: colors.background,
@@ -426,9 +454,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    maxWidth: 1100,
+    paddingHorizontal: 28,
+    paddingVertical: 18,
+    maxWidth: 1500,
     width: "100%",
     alignSelf: "center",
   },
@@ -440,8 +468,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoImage: {
-    width: 180,
-    height: 56,
+    width: 220,
+    height: 68,
   },
   navLinks: {
     flexDirection: "row",
@@ -449,9 +477,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   navEmail: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textMuted,
-    maxWidth: 180,
+    maxWidth: 220,
   },
   navGhost: {
     paddingHorizontal: 14,
@@ -461,7 +489,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   navGhostText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     color: colors.text,
   },
@@ -483,17 +511,17 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   hero: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 56,
-    maxWidth: 1100,
+    paddingHorizontal: 28,
+    paddingTop: 56,
+    paddingBottom: 72,
+    maxWidth: 1500,
     width: "100%",
     alignSelf: "center",
   },
   heroWide: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 48,
+    gap: 40,
     paddingHorizontal: 32,
     paddingTop: 64,
   },
@@ -519,23 +547,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   heroTitle: {
-    fontSize: 34,
+    fontSize: 42,
     fontWeight: "700",
     color: colors.text,
-    lineHeight: 42,
+    lineHeight: 50,
     marginBottom: 16,
     letterSpacing: -0.4,
   },
   heroTitleWide: {
-    fontSize: 46,
-    lineHeight: 54,
+    fontSize: 60,
+    lineHeight: 68,
   },
   heroSubtitle: {
-    fontSize: 16,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 28,
     color: colors.textMuted,
-    marginBottom: 28,
-    maxWidth: 540,
+    marginBottom: 32,
+    maxWidth: 620,
   },
   heroActions: {
     flexDirection: "row",
@@ -544,19 +572,19 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 16,
     borderRadius: 12,
   },
   primaryBtnText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
   },
   secondaryBtn: {
     backgroundColor: colors.card,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -565,11 +593,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "600",
-  },
-  heroVisual: {
-    position: "relative",
-    minHeight: 280,
-    flex: 1,
   },
   heroVisualWide: {
     minHeight: 360,
@@ -679,7 +702,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   featureStrip: {
-    maxWidth: 1100,
+    maxWidth: 1500,
     width: "100%",
     alignSelf: "center",
     backgroundColor: colors.card,
@@ -694,11 +717,11 @@ const styles = StyleSheet.create({
   stripCard: {
     flex: 1,
     minWidth: 210,
-    padding: 14,
+    padding: 18,
     borderRadius: 18,
   },
   stripTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: colors.text,
     marginBottom: 6,
@@ -711,7 +734,7 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
     paddingVertical: 44,
-    maxWidth: 1100,
+    maxWidth: 1500,
     width: "100%",
     alignSelf: "center",
   },
@@ -799,19 +822,19 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   cta: {
-    marginHorizontal: 20,
+    marginHorizontal: 28,
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 32,
     backgroundColor: colors.primary,
     borderRadius: 20,
-    padding: 36,
+    padding: 40,
     alignItems: "center",
-    maxWidth: 1100,
+    maxWidth: 1500,
     alignSelf: "center",
     width: "100%",
   },
   ctaTitle: {
-    fontSize: 25,
+    fontSize: 30,
     fontWeight: "700",
     color: "#fff",
     textAlign: "center",
@@ -819,17 +842,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   ctaSubtitle: {
-    fontSize: 16,
+    fontSize: 17,
     color: "#C7D2FE",
     textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 24,
-    maxWidth: 700,
+    marginBottom: 28,
+    lineHeight: 26,
+    maxWidth: 820,
   },
   ctaBtn: {
     backgroundColor: "#fff",
-    paddingHorizontal: 28,
-    paddingVertical: 14,
+    paddingHorizontal: 30,
+    paddingVertical: 16,
     borderRadius: 12,
   },
   ctaBtnText: {
@@ -838,38 +861,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   dashboardHero: {
-    paddingHorizontal: 20,
-    paddingTop: 42,
-    paddingBottom: 26,
-    maxWidth: 1100,
+    paddingHorizontal: 28,
+    paddingTop: 52,
+    paddingBottom: 30,
+    maxWidth: 1500,
     width: "100%",
     alignSelf: "center",
   },
   dashboardHeroWide: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: 18,
-    paddingHorizontal: 32,
-    paddingTop: 64,
+    gap: 22,
+    paddingHorizontal: 40,
+    paddingTop: 72,
   },
   dashboardCopy: {
     flex: 1,
     marginBottom: 18,
   },
   dashboardTitle: {
-    fontSize: 34,
+    fontSize: 42,
     fontWeight: "700",
     color: colors.text,
-    lineHeight: 42,
+    lineHeight: 50,
     marginBottom: 14,
     letterSpacing: -0.4,
   },
   dashboardSubtitle: {
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: 17,
+    lineHeight: 26,
     color: colors.textMuted,
-    marginBottom: 24,
-    maxWidth: 560,
+    marginBottom: 26,
+    maxWidth: 640,
   },
   dashboardActions: {
     flexDirection: "row",
@@ -882,8 +905,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 20,
-    padding: 18,
-    minWidth: 280,
+    padding: 22,
+    minWidth: 320,
   },
   dashboardPanelTop: {
     flexDirection: "row",
@@ -899,7 +922,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   panelValue: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: colors.coin,
   },
@@ -925,7 +948,7 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through",
   },
   miniTaskCoins: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: colors.coin,
   },
@@ -962,14 +985,14 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   boxTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "700",
     color: colors.text,
     marginBottom: 6,
   },
   boxText: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.textMuted,
     marginBottom: 10,
   },
@@ -1002,7 +1025,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   taskCoins: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: colors.coin,
   },
@@ -1038,7 +1061,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   galleryText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     color: colors.text,
   },
