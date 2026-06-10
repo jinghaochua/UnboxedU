@@ -1,8 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
+import { useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   Pressable,
   ScrollView,
@@ -87,6 +90,19 @@ export function WebHomepage() {
   const { user, loading } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 960;
+
+  const lidAnim = useMemo(() => new Animated.Value(0), []);
+
+  useEffect(() => {
+    Animated.timing(lidAnim, {
+      toValue: 1,
+      duration: 1000,
+      delay: 500,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [lidAnim]);
+
 
   if (loading) {
     return (
@@ -273,7 +289,6 @@ export function WebHomepage() {
         <View style={[styles.hero, isWide && styles.heroWide]}>
           <View style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>NUS ORBITAL PROJECT</Text>
             </View>
 
             <Text style={[styles.heroTitle, isWide && styles.heroTitleWide]}>
