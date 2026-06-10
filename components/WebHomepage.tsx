@@ -1,14 +1,12 @@
-import { useMemo } from "react";
-
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  View,
+  Text, useWindowDimensions, View
 } from "react-native";
 
 import { colors } from "@/constants/theme";
@@ -23,36 +21,62 @@ const FEATURES = [
   },
   {
     label: "Coins",
-    title: "See your balance",
-    body: "Check how many coins you have before opening a box.",
+    title: "Earn rewards",
+    body: "Complete tasks to build up coins for blind boxes.",
   },
   {
     label: "Boxes",
     title: "Open mystery boxes",
-    body: "Spend coins and unlock a random reward.",
+    body: "Spend coins and get a random study-themed reward.",
   },
   {
     label: "Gallery",
-    title: "View collection",
-    body: "Store the items you unlock and review them anytime.",
+    title: "Save your items",
+    body: "Store everything you unlock and review it later.",
   },
-] as const;
+];
+
+const STEPS = [
+  {
+    step: "1",
+    title: "Create an account",
+    body: "Sign up and set up your profile.",
+  },
+  {
+    step: "2",
+    title: "Complete tasks",
+    body: "Finish study tasks to earn coins.",
+  },
+  {
+    step: "3",
+    title: "Open boxes",
+    body: "Use your coins to unlock items.",
+  },
+  {
+    step: "4",
+    title: "Collect and repeat",
+    body: "Keep going and build your collection over time.",
+  },
+];
 
 const TASKS = [
   {
     title: "Review lecture notes",
     detail: "Finish before dinner",
     coins: 15,
+    status: "Today",
   },
   {
     title: "Complete quiz practice",
     detail: "Try to score above 80%",
     coins: 25,
+    status: "Urgent",
   },
   {
     title: "Read one chapter",
     detail: "Focus on the key concepts",
     coins: 20,
+    status: "This week",
   },
 ];
 
@@ -60,11 +84,8 @@ const COLLECTION = ["Starter badge", "Study card", "Rare item"];
 
 export function WebHomepage() {
   const { user, loading } = useAuth();
-
-  const headline = useMemo(() => {
-    if (user) return "Welcome back.\nContinue your tasks.";
-    return "Study work,\nwith a simple reward system";
-  }, [user]);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 960;
 
   if (loading) {
     return (
@@ -74,46 +95,172 @@ export function WebHomepage() {
     );
   }
 
+  if (user) {
+    return (
+      <View style={styles.page}>
+        <View style={styles.navWrap}>
+          <View style={[styles.nav, isWide && styles.navWide]}>
+            <Pressable style={styles.logoRow} onPress={() => {}}>
+              <Image
+                source={require("../assets/images/unboxedu-logo.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </Pressable>
+
+            <View style={styles.navLinks}>
+              <Text style={styles.navEmail} numberOfLines={1}>
+                {user.email}
+              </Text>
+
+              <Pressable style={styles.navGhost} onPress={() => signOut(auth)}>
+                <Text style={styles.navGhostText}>Log out</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.dashboardHero, isWide && styles.dashboardHeroWide]}>
+            <View style={styles.dashboardCopy}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>Signed in</Text>
+              </View>
+
+              <Text style={styles.dashboardTitle}>
+                Welcome back.{`\n`}Continue your tasks.
+              </Text>
+
+              <Text style={styles.dashboardSubtitle}>
+                Keep your study work, coins, and box opening in one place.
+              </Text>
+
+              <View style={styles.dashboardActions}>
+                <Pressable
+                  style={styles.primaryBtn}
+                  onPress={() => router.push("/mystery")}
+                >
+                  <Text style={styles.primaryBtnText}>Open mystery box</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.secondaryBtn}
+                  onPress={() => signOut(auth)}
+                >
+                  <Text style={styles.secondaryBtnText}>Log out</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.dashboardPanel}>
+              <View style={styles.dashboardPanelTop}>
+                <Text style={styles.panelLabel}>Today</Text>
+                <Text style={styles.panelValue}>120 coins</Text>
+              </View>
+
+              <View style={styles.miniTaskList}>
+                <MiniTask title="Review lecture notes" coins={15} done />
+                <MiniTask title="Practice quiz" coins={25} />
+                <MiniTask title="Read one chapter" coins={20} />
+              </View>
+
+              <Pressable
+                style={styles.boxCard}
+                onPress={() => router.push("/mystery")}
+              >
+                <View style={styles.boxVisual}>
+                  <View style={styles.boxLid} />
+                  <View style={styles.boxBody} />
+                </View>
+                <Text style={styles.boxTitle}>Mystery box</Text>
+                <Text style={styles.boxText}>
+                  Tap to open the blind box screen.
+                </Text>
+                <Text style={styles.boxLink}>Open box</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick features</Text>
+            <Text style={styles.sectionSubtitle}>
+              Tap around and jump to the main parts of the app.
+            </Text>
+
+            <View style={[styles.featureGrid, isWide && styles.featureGridWide]}>
+              {FEATURES.map((feature) => (
+                <View key={feature.title} style={styles.featureCard}>
+                  <Text style={styles.featureLabel}>{feature.label}</Text>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureBody}>{feature.body}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tasks to do</Text>
+            <Text style={styles.sectionSubtitle}>
+              A simple list you can connect to Firestore later.
+            </Text>
+
+            <View style={styles.taskList}>
+              {TASKS.map((task) => (
+                <View key={task.title} style={styles.taskCard}>
+                  <View style={styles.taskTopRow}>
+                    <Text style={styles.taskStatus}>{task.status}</Text>
+                    <Text style={styles.taskCoins}>+{task.coins} coins</Text>
+                  </View>
+
+                  <Text style={styles.taskName}>{task.title}</Text>
+                  <Text style={styles.taskDetail}>{task.detail}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Gallery</Text>
+            <Text style={styles.sectionSubtitle}>
+              Items you unlock can live here later.
+            </Text>
+
+            <View style={styles.galleryCard}>
+              {COLLECTION.map((item) => (
+                <View key={item} style={styles.galleryRow}>
+                  <View style={styles.galleryThumb} />
+                  <Text style={styles.galleryText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.page}>
       <View style={styles.navWrap}>
-        <View style={styles.nav}>
+        <View style={[styles.nav, isWide && styles.navWide]}>
           <Pressable style={styles.logoRow} onPress={() => {}}>
-            <View style={styles.logoMark} />
-            <Text style={styles.logoText}>UnboxedU</Text>
+            <Image
+              source={require("../assets/images/unboxedu-logo.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </Pressable>
 
-          <View style={styles.navLinks}>
-            <Pressable onPress={() => {}}>
-              <Text style={styles.navLink}>Features</Text>
-            </Pressable>
-
-            {user ? (
-              <>
-                <Text style={styles.navEmail} numberOfLines={1}>
-                  {user.email}
-                </Text>
-                <Pressable style={styles.navGhost} onPress={() => signOut(auth)}>
-                  <Text style={styles.navGhostText}>Log out</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Pressable
-                  style={styles.navGhost}
-                  onPress={() => router.push("/login")}
-                >
-                  <Text style={styles.navGhostText}>Log in</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.navCta}
-                  onPress={() => router.push("/register")}
-                >
-                  <Text style={styles.navCtaText}>Get started</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
+          <Pressable
+            style={styles.navCta}
+            onPress={() => router.push("/login")}
+          >
+            <Text style={styles.navCtaText}>Try UnboxedU</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -122,159 +269,102 @@ export function WebHomepage() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
-          <View style={styles.heroCopy}>
+        <View style={[styles.hero, isWide && styles.heroWide]}>
+          <View style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {user ? "Signed in" : "Study rewards app"}
-              </Text>
+              <Text style={styles.badgeText}>NUS ORBITAL PROJECT</Text>
             </View>
 
-            <Text style={styles.heroTitle}>{headline}</Text>
+            <Text style={[styles.heroTitle, isWide && styles.heroTitleWide]}>
+              Study more.{`\n`}Earn rewards.{`\n`}Unbox surprises.
+            </Text>
 
             <Text style={styles.heroSubtitle}>
-              UnboxedU keeps your tasks, coins, boxes, and collection in one
-              place. Finish work, earn coins, and unlock items as you go.
+              UnboxedU turns study tasks into a simple reward loop. Finish work,
+              earn coins, and unlock things as you go.
             </Text>
 
             <View style={styles.heroActions}>
-              {user ? (
-                <Pressable
-                  style={styles.primaryBtn}
-                  onPress={() => signOut(auth)}
-                >
-                  <Text style={styles.primaryBtnText}>Log out</Text>
-                </Pressable>
-              ) : (
-                <>
-                  <Pressable
-                    style={styles.primaryBtn}
-                    onPress={() => router.push("/register")}
-                  >
-                    <Text style={styles.primaryBtnText}>Create account</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.secondaryBtn}
-                    onPress={() => router.push("/login")}
-                  >
-                    <Text style={styles.secondaryBtnText}>Log in</Text>
-                  </Pressable>
-                </>
-              )}
+              <Pressable
+                style={styles.primaryBtn}
+                onPress={() => router.push("/register")}
+              >
+                <Text style={styles.primaryBtnText}>Get Started</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.secondaryBtn}
+                onPress={() => router.push("/login")}
+              >
+                <Text style={styles.secondaryBtnText}>Log in</Text>
+              </Pressable>
             </View>
           </View>
 
-          <View style={styles.heroVisual}>
-            <View style={styles.mockCard}>
-              <Text style={styles.mockLabel}>Today</Text>
-              <MockTask title="Review lecture notes" coins={15} done />
-              <MockTask title="Practice quiz" coins={25} />
-              <MockTask title="Read one chapter" coins={20} />
-              <View style={styles.mockCoins}>
-                <View style={styles.coinDot} />
-                <Text style={styles.mockCoinsText}>120 coins</Text>
+          <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
+            <View style={styles.heroArtCard}>
+              <View style={styles.heroArtTopRow}>
+                <View style={styles.heroOrb} />
+                <View style={styles.heroOrbSmall} />
+              </View>
+
+              <View style={styles.heroChestWrap}>
+                <View style={styles.heroChestGlow} />
+                <View style={styles.heroChest} />
+                <View style={styles.heroChestLid} />
+              </View>
+
+              <View style={styles.heroArtBottomRow}>
+                <View style={styles.heroStack}>
+                  <View style={styles.heroStackBook} />
+                  <View style={styles.heroStackBook2} />
+                  <View style={styles.heroStackBook3} />
+                </View>
+
+                <View style={styles.heroCup} />
               </View>
             </View>
-
-            {user ? (
-              <View style={styles.mockBox}>
-                <View style={styles.boxTop} />
-                <Text style={styles.mockBoxLabel}>Mystery box</Text>
-              </View>
-            ) : null}
           </View>
         </View>
 
-      {!user && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What the app does</Text>
-          <Text style={styles.sectionSubtitle}>
-            Built for students who want a simple way to keep track of study
-            tasks and rewards.
-          </Text>
-
-          <View style={styles.featureGrid}>
-            {FEATURES.map((feature) => (
-              <View key={feature.title} style={styles.featureCard}>
-                <Text style={styles.featureLabel}>{feature.label}</Text>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureBody}>{feature.body}</Text>
-              </View>
-            ))}
+        <View style={styles.featureStrip}>
+          <View style={styles.stripCard}>
+            <Text style={styles.stripTitle}>Task Manager</Text>
+            <Text style={styles.stripText}>
+              Organize and track your study tasks easily.
+            </Text>
+          </View>
+          <View style={styles.stripCard}>
+            <Text style={styles.stripTitle}>Earn Coins</Text>
+            <Text style={styles.stripText}>
+              Complete tasks and build up your balance.
+            </Text>
+          </View>
+          <View style={styles.stripCard}>
+            <Text style={styles.stripTitle}>Blind Boxes</Text>
+            <Text style={styles.stripText}>
+              Spend coins to open random rewards.
+            </Text>
+          </View>
+          <View style={styles.stripCard}>
+            <Text style={styles.stripTitle}>Collection</Text>
+            <Text style={styles.stripText}>
+              Save the items you unlock and show them off.
+            </Text>
           </View>
         </View>
-      )}
-
-        {user ? (
-          <>
-            <View style={[styles.section, styles.sectionTint]}>
-              <Text style={styles.sectionTitle}>Your dashboard</Text>
-              <Text style={styles.sectionSubtitle}>
-                This is the logged-in view. From here you can jump to the blind
-                box screen.
-              </Text>
-
-              <View style={styles.dashboardGrid}>
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoLabel}>Tasks</Text>
-                  {TASKS.map((task) => (
-                    <View key={task.title} style={styles.taskRow}>
-                      <View style={styles.taskTextWrap}>
-                        <Text style={styles.taskTitle}>{task.title}</Text>
-                        <Text style={styles.taskDetail}>{task.detail}</Text>
-                      </View>
-                      <Text style={styles.taskCoins}>+{task.coins}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                <Pressable
-                  style={styles.boxCard}
-                  onPress={() => router.push("/mystery")}
-                >
-                  <View style={styles.boxVisual} />
-                  <Text style={styles.boxTitle}>Mystery box</Text>
-                  <Text style={styles.boxText}>
-                    Tap to open the blind box screen.
-                  </Text>
-                  <Text style={styles.boxLink}>Open box</Text>
-                </Pressable>
-
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoLabel}>Gallery</Text>
-                  {COLLECTION.map((item) => (
-                    <View key={item} style={styles.galleryRow}>
-                      <View style={styles.galleryThumb} />
-                      <Text style={styles.galleryText}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </View>
-          </>
-        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How it works</Text>
 
-          <View style={styles.steps}>
-            <View style={styles.stepCard}>
-              <Text style={styles.stepNumber}>01</Text>
-              <Text style={styles.stepTitle}>Create an account</Text>
-              <Text style={styles.stepBody}>Sign up and set up your profile.</Text>
-            </View>
-
-            <View style={styles.stepCard}>
-              <Text style={styles.stepNumber}>02</Text>
-              <Text style={styles.stepTitle}>Complete tasks</Text>
-              <Text style={styles.stepBody}>Finish study tasks to earn coins.</Text>
-            </View>
-
-            <View style={styles.stepCard}>
-              <Text style={styles.stepNumber}>03</Text>
-              <Text style={styles.stepTitle}>Open boxes</Text>
-              <Text style={styles.stepBody}>Use your coins to unlock items.</Text>
-            </View>
+          <View style={[styles.steps, isWide && styles.stepsWide]}>
+            {STEPS.map((item) => (
+              <View key={item.step} style={styles.stepCard}>
+                <Text style={styles.stepNumber}>{item.step}</Text>
+                <Text style={styles.stepTitle}>{item.title}</Text>
+                <Text style={styles.stepBody}>{item.body}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -285,29 +375,19 @@ export function WebHomepage() {
             rewards.
           </Text>
 
-          {!user ? (
-            <Pressable
-              style={styles.ctaBtn}
-              onPress={() => router.push("/register")}
-            >
-              <Text style={styles.ctaBtnText}>Create free account</Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        <View style={styles.footer}>
-          <View style={styles.footerMark} />
-          <Text style={styles.footerLogo}>UnboxedU</Text>
-          <Text style={styles.footerCopy}>
-            Study tasks, coins, boxes, and collections.
-          </Text>
+          <Pressable
+            style={styles.ctaBtn}
+            onPress={() => router.push("/register")}
+          >
+            <Text style={styles.ctaBtnText}>Create free account</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function MockTask({
+function MiniTask({
   title,
   coins,
   done,
@@ -317,11 +397,11 @@ function MockTask({
   done?: boolean;
 }) {
   return (
-    <View style={styles.mockTask}>
-      <Text style={[styles.mockTaskTitle, done && styles.mockTaskDone]}>
+    <View style={styles.miniTask}>
+      <Text style={[styles.miniTaskTitle, done && styles.miniTaskDone]}>
         {done ? "Done" : "Open"} · {title}
       </Text>
-      <Text style={styles.mockTaskCoins}>+{coins}</Text>
+      <Text style={styles.miniTaskCoins}>+{coins}</Text>
     </View>
   );
 }
@@ -352,33 +432,21 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
+  navWide: {
+    paddingHorizontal: 32,
+  },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
   },
-  logoMark: {
-    width: 12,
-    height: 12,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-  },
-  logoText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.text,
-    letterSpacing: 0.2,
+  logoImage: {
+    width: 180,
+    height: 56,
   },
   navLinks: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-  },
-  navLink: {
-    fontSize: 15,
-    color: colors.textMuted,
-    fontWeight: "500",
-    marginRight: 8,
   },
   navEmail: {
     fontSize: 14,
@@ -389,6 +457,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   navGhostText: {
     fontSize: 15,
@@ -420,8 +490,19 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
+  heroWide: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 48,
+    paddingHorizontal: 32,
+    paddingTop: 64,
+  },
   heroCopy: {
     marginBottom: 32,
+  },
+  heroCopyWide: {
+    flex: 1,
+    marginBottom: 0,
   },
   badge: {
     alignSelf: "flex-start",
@@ -435,6 +516,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: colors.primary,
+    letterSpacing: 0.2,
   },
   heroTitle: {
     fontSize: 34,
@@ -444,13 +526,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     letterSpacing: -0.4,
   },
+  heroTitleWide: {
+    fontSize: 46,
+    lineHeight: 54,
+  },
   heroSubtitle: {
     fontSize: 16,
     lineHeight: 26,
     color: colors.textMuted,
     marginBottom: 28,
     maxWidth: 540,
-    fontWeight: "400",
   },
   heroActions: {
     flexDirection: "row",
@@ -484,127 +569,173 @@ const styles = StyleSheet.create({
   heroVisual: {
     position: "relative",
     minHeight: 280,
+    flex: 1,
   },
-  mockCard: {
+  heroVisualWide: {
+    minHeight: 360,
+  },
+  heroArtCard: {
     backgroundColor: colors.card,
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
     shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-  },
-  mockLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 14,
-  },
-  mockTask: {
-    flexDirection: "row",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    minHeight: 320,
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  mockTaskTitle: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: "500",
-    flex: 1,
-  },
-  mockTaskDone: {
-    color: colors.textMuted,
-    textDecorationLine: "line-through",
-  },
-  mockTaskCoins: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.coin,
-  },
-  mockCoins: {
+  heroArtTopRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 14,
-    backgroundColor: "#FEF3C7",
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    justifyContent: "flex-end",
+    gap: 10,
   },
-  coinDot: {
-    width: 10,
-    height: 10,
+  heroOrb: {
+    width: 56,
+    height: 56,
     borderRadius: 999,
-    backgroundColor: colors.coin,
+    backgroundColor: "#f8e18a",
+    opacity: 0.95,
   },
-  mockCoinsText: {
-    fontWeight: "700",
-    color: colors.coin,
-    fontSize: 15,
+  heroOrbSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: "#d9cbff",
+    marginTop: 16,
   },
-  mockBox: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
+  heroChestWrap: {
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderStyle: "dashed",
-    minWidth: 120,
+    justifyContent: "center",
+    marginVertical: 18,
   },
-  boxTop: {
-    width: 30,
+  heroChestGlow: {
+    position: "absolute",
+    width: 180,
+    height: 80,
+    borderRadius: 999,
+    backgroundColor: "#f6d88f",
+    opacity: 0.35,
+    bottom: 14,
+  },
+  heroChest: {
+    width: 170,
+    height: 110,
+    borderRadius: 16,
+    backgroundColor: "#b57a30",
+    borderWidth: 6,
+    borderColor: "#e4b04e",
+  },
+  heroChestLid: {
+    position: "absolute",
+    width: 180,
+    height: 46,
+    borderRadius: 16,
+    backgroundColor: "#d3942f",
+    top: -14,
+    borderWidth: 6,
+    borderColor: "#e4b04e",
+  },
+  heroArtBottomRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  heroStack: {
+    width: 120,
+    height: 96,
+    justifyContent: "flex-end",
+  },
+  heroStackBook: {
+    width: 100,
     height: 18,
-    borderRadius: 5,
-    backgroundColor: colors.primaryLight,
-    marginBottom: 10,
+    borderRadius: 6,
+    backgroundColor: "#8aa7d4",
+    marginBottom: 6,
   },
-  mockBoxLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.primary,
+  heroStackBook2: {
+    width: 108,
+    height: 18,
+    borderRadius: 6,
+    backgroundColor: "#c1b6a6",
+    marginBottom: 6,
   },
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 48,
+  heroStackBook3: {
+    width: 116,
+    height: 18,
+    borderRadius: 6,
+    backgroundColor: "#6b8ac9",
+  },
+  heroCup: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    borderWidth: 4,
+    borderColor: "#c5c5c5",
+    backgroundColor: "#f7f7f7",
+    marginBottom: 2,
+  },
+  featureStrip: {
     maxWidth: 1100,
     width: "100%",
     alignSelf: "center",
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
   },
-  sectionTint: {
-    backgroundColor: colors.primaryLight,
-    maxWidth: "100%",
+  stripCard: {
+    flex: 1,
+    minWidth: 210,
+    padding: 14,
+    borderRadius: 18,
+  },
+  stripTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 6,
+  },
+  stripText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textMuted,
+  },
+  section: {
+    paddingHorizontal: 20,
+    paddingVertical: 44,
+    maxWidth: 1100,
     width: "100%",
+    alignSelf: "center",
   },
   sectionTitle: {
     fontSize: 26,
     fontWeight: "700",
     color: colors.text,
-    textAlign: "center",
     marginBottom: 10,
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 15,
     color: colors.textMuted,
-    textAlign: "center",
-    marginBottom: 28,
+    marginBottom: 22,
     lineHeight: 23,
     maxWidth: 720,
-    alignSelf: "center",
   },
   featureGrid: {
     gap: 16,
+  },
+  featureGridWide: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 18,
   },
   featureCard: {
     backgroundColor: colors.card,
@@ -612,6 +743,8 @@ const styles = StyleSheet.create({
     padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
+    flex: 1,
+    minWidth: 240,
   },
   featureLabel: {
     fontSize: 12,
@@ -632,112 +765,21 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.textMuted,
   },
-  dashboardGrid: {
-    gap: 16,
-  },
-  infoCard: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 18,
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  taskRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  taskTextWrap: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  taskTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: 3,
-  },
-  taskDetail: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  taskCoins: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.coin,
-  },
-  boxCard: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 18,
-    alignItems: "flex-start",
-  },
-  boxVisual: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: colors.primaryLight,
-    marginBottom: 14,
-  },
-  boxTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: 6,
-  },
-  boxText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: colors.textMuted,
-    marginBottom: 12,
-  },
-  boxLink: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  galleryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
-  },
-  galleryThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.primaryLight,
-  },
-  galleryText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.text,
-  },
   steps: {
     gap: 16,
-    maxWidth: 900,
-    alignSelf: "center",
-    width: "100%",
+  },
+  stepsWide: {
+    flexDirection: "row",
+    gap: 18,
   },
   stepCard: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 24,
+    padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
+    minWidth: 200,
   },
   stepNumber: {
     fontSize: 13,
@@ -758,10 +800,11 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 8,
+    marginBottom: 24,
     backgroundColor: colors.primary,
     borderRadius: 20,
-    padding: 40,
+    padding: 36,
     alignItems: "center",
     maxWidth: 1100,
     alignSelf: "center",
@@ -794,30 +837,209 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 16,
   },
-  footer: {
+  dashboardHero: {
     paddingHorizontal: 20,
-    paddingTop: 48,
-    alignItems: "center",
+    paddingTop: 42,
+    paddingBottom: 26,
     maxWidth: 1100,
-    alignSelf: "center",
     width: "100%",
+    alignSelf: "center",
   },
-  footerMark: {
-    width: 14,
-    height: 14,
-    borderRadius: 999,
+  dashboardHeroWide: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 18,
+    paddingHorizontal: 32,
+    paddingTop: 64,
+  },
+  dashboardCopy: {
+    flex: 1,
+    marginBottom: 18,
+  },
+  dashboardTitle: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: colors.text,
+    lineHeight: 42,
+    marginBottom: 14,
+    letterSpacing: -0.4,
+  },
+  dashboardSubtitle: {
+    fontSize: 16,
+    lineHeight: 25,
+    color: colors.textMuted,
+    marginBottom: 24,
+    maxWidth: 560,
+  },
+  dashboardActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  dashboardPanel: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 18,
+    minWidth: 280,
+  },
+  dashboardPanelTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  panelLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  panelValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.coin,
+  },
+  miniTaskList: {
+    marginBottom: 14,
+  },
+  miniTask: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  miniTaskTitle: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: "500",
+    flex: 1,
+  },
+  miniTaskDone: {
+    color: colors.textMuted,
+    textDecorationLine: "line-through",
+  },
+  miniTaskCoins: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.coin,
+  },
+  boxCard: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 18,
+  },
+  boxVisual: {
+    width: 68,
+    height: 68,
+    marginBottom: 14,
+    position: "relative",
+  },
+  boxLid: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    right: 6,
+    height: 18,
+    borderRadius: 6,
+    backgroundColor: colors.primaryLight,
+  },
+  boxBody: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: colors.primary,
-    marginBottom: 10,
+    opacity: 0.85,
   },
-  footerLogo: {
+  boxTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  footerCopy: {
+  boxText: {
     fontSize: 14,
+    lineHeight: 21,
     color: colors.textMuted,
-    textAlign: "center",
+    marginBottom: 10,
+  },
+  boxLink: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  taskList: {
+    gap: 12,
+  },
+  taskCard: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 18,
+  },
+  taskTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  taskStatus: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  taskCoins: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.coin,
+  },
+  taskName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 6,
+  },
+  taskDetail: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textMuted,
+  },
+  galleryCard: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
+  },
+  galleryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  galleryThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight,
+  },
+  galleryText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.text,
   },
 });
