@@ -1,7 +1,6 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
-import { useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -10,7 +9,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text, useWindowDimensions, View
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 import { colors } from "@/constants/theme";
@@ -18,47 +19,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import Cockatiel from "../assets/images/cockatiel.svg";
 
-const { width } = useWindowDimensions();
-
-const isWide = width >= 960;
-
-const cockatielAnim = useMemo(() => new Animated.Value(0), []);
-
-useEffect(() => {
-  Animated.loop(
-    Animated.sequence([
-      Animated.timing(cockatielAnim, {
-        toValue: 1,
-        duration: 2600,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: true,
-      }),
-      Animated.timing(cockatielAnim, {
-        toValue: 0,
-        duration: 2600,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: true,
-      }),
-    ])
-  ).start();
-}, [cockatielAnim]);
-
-const cockatielMotionStyle = {
-  transform: [
-    {
-      translateY: cockatielAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -12],
-      }),
-    },
-    {
-      rotate: cockatielAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ["-1deg", "1deg"],
-      }),
-    },
-  ],
-};
+const PUFFERFISH_OPEN = require("../assets/images/pufferfish-open.png");
+const PUFFERFISH_CLOSED = require("../assets/images/pufferfish-closed.png");
 
 const FEATURES = [
   {
@@ -129,23 +91,110 @@ const TASKS = [
 
 const COLLECTION = ["Starter badge", "Study card", "Rare item"];
 
+const STATS = [
+  { value: "12k+", label: "students" },
+  { value: "840k", label: "tasks done" },
+  { value: "200+", label: "rewards" },
+  { value: "14", label: "avg streak" },
+];
+
 export function WebHomepage() {
   const { user, loading } = useAuth();
   const { width } = useWindowDimensions();
-  const isWide = width >= 960;
+  const isWide = width >= 1100;
 
-  const lidAnim = useMemo(() => new Animated.Value(0), []);
+  const floatAnim = useMemo(() => new Animated.Value(0), []);
+  const blinkAnim = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
-    Animated.timing(lidAnim, {
-      toValue: 1,
-      duration: 1000,
-      delay: 500,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [lidAnim]);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
 
+    loop.start();
+    return () => loop.stop();
+  }, [floatAnim]);
+
+  useEffect(() => {
+    const blinkLoop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(2500),
+        Animated.timing(blinkAnim, {
+          toValue: 1,
+          duration: 120,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(blinkAnim, {
+          toValue: 0,
+          duration: 120,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.delay(3800),
+      ])
+    );
+
+    blinkLoop.start();
+    return () => blinkLoop.stop();
+  }, [blinkAnim]);
+
+  const openOpacity = blinkAnim.interpolate({
+    inputRange: [0, 0.45, 0.55, 1],
+    outputRange: [1, 1, 0, 0],
+  });
+
+  const closedOpacity = blinkAnim.interpolate({
+    inputRange: [0, 0.45, 0.55, 1],
+    outputRange: [0, 0, 1, 1],
+  });
+
+  const cockatielMotionStyle = {
+    transform: [
+      {
+        translateY: floatAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -12],
+        }),
+      },
+      {
+        rotate: floatAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["-1deg", "1deg"],
+        }),
+      },
+    ],
+  };
+
+  const pufferfishMotionStyle = {
+    transform: [
+      {
+        translateY: floatAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -8],
+        }),
+      },
+      {
+        rotate: floatAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["-4deg", "4deg"],
+        }),
+      },
+    ],
+  };
 
   if (loading) {
     return (
@@ -245,13 +294,11 @@ export function WebHomepage() {
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick features</Text>
-            <Text style={styles.sectionSubtitle}>
-              Tap around and jump to the main parts of the app.
-            </Text>
-
-            <View style={[styles.featureGrid, isWide && styles.featureGridWide]}>
+          <SectionBlock
+            title="Quick features"
+            subtitle="Tap around and jump to the main parts of the app."
+          >
+            <View style={[styles.cardGrid, isWide && styles.cardGridWide]}>
               {FEATURES.map((feature) => (
                 <View key={feature.title} style={styles.featureCard}>
                   <Text style={styles.featureLabel}>{feature.label}</Text>
@@ -260,14 +307,13 @@ export function WebHomepage() {
                 </View>
               ))}
             </View>
-          </View>
+          </SectionBlock>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tasks to do</Text>
-            <Text style={styles.sectionSubtitle}>
-              A simple list you can connect to Firestore later.
-            </Text>
-
+          <SectionBlock
+            title="Tasks to do"
+            subtitle="A simple list you can connect to Firestore later."
+            alt
+          >
             <View style={styles.taskList}>
               {TASKS.map((task) => (
                 <View key={task.title} style={styles.taskCard}>
@@ -281,14 +327,12 @@ export function WebHomepage() {
                 </View>
               ))}
             </View>
-          </View>
+          </SectionBlock>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Gallery</Text>
-            <Text style={styles.sectionSubtitle}>
-              Items you unlock can live here later.
-            </Text>
-
+          <SectionBlock
+            title="Gallery"
+            subtitle="Items you unlock can live here later."
+          >
             <View style={styles.galleryCard}>
               {COLLECTION.map((item) => (
                 <View key={item} style={styles.galleryRow}>
@@ -297,7 +341,7 @@ export function WebHomepage() {
                 </View>
               ))}
             </View>
-          </View>
+          </SectionBlock>
         </ScrollView>
       </View>
     );
@@ -332,15 +376,16 @@ export function WebHomepage() {
         <View style={[styles.hero, isWide && styles.heroWide]}>
           <View style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
             <View style={styles.badge}>
+              <Text style={styles.badgeText}>Study • Earn • Unbox</Text>
             </View>
 
             <Text style={[styles.heroTitle, isWide && styles.heroTitleWide]}>
-              Study more.{`\n`}Earn rewards.{`\n`}Unbox surprises.
+              The fun way{`\n`}to stay on top{`\n`}of your studies
             </Text>
 
             <Text style={styles.heroSubtitle}>
-              UnboxedU turns study tasks into a simple reward loop.{`\n`}Finish work,
-              earn coins, and unlock things as you go.
+              Complete tasks, earn coins, and unlock mystery boxes. Learning
+              feels a little more worth showing up for.
             </Text>
 
             <View style={styles.heroActions}>
@@ -348,105 +393,220 @@ export function WebHomepage() {
                 style={styles.primaryBtn}
                 onPress={() => router.push("/register")}
               >
-                <Text style={styles.primaryBtnText}>Get Started</Text>
+                <Text style={styles.primaryBtnText}>Get started</Text>
               </Pressable>
 
               <Pressable
                 style={styles.secondaryBtn}
                 onPress={() => router.push("/login")}
               >
-                <Text style={styles.secondaryBtnText}>Log in</Text>
+                <Text style={styles.secondaryBtnText}>I already have an account</Text>
               </Pressable>
+            </View>
+
+            <View style={styles.heroMetaRow}>
+              {STATS.map((stat) => (
+                <View key={stat.label} style={styles.heroMetaItem}>
+                  <Text style={styles.heroMetaValue}>{stat.value}</Text>
+                  <Text style={styles.heroMetaLabel}>{stat.label}</Text>
+                </View>
+              ))}
             </View>
           </View>
 
-        <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
-          <Image
-            source={require("../assets/images/top-middle-pic.png")}
-            style={styles.heroImage}
-            resizeMode="contain"
-          />
+          <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
 
-        <View style={styles.cockatielWrapper}>
-          <Animated.View style={cockatielMotionStyle}>
-            <Cockatiel width={320} height={320} />
-          </Animated.View>
-        </View>
-
-          <LinearGradient
-            pointerEvents="none"
-            colors={["rgba(250,248,247,0.98)", "rgba(250,248,247,0)"]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.heroFadeLeft}
-          />
-
-          <LinearGradient
-            pointerEvents="none"
-            colors={["rgba(250,248,247,0)", "rgba(250,248,247,0.9)"]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.heroFadeBottom}
-          />
-        </View>
-      </View>
-
-        <View style={styles.featureStrip}>
-          <View style={styles.stripCard}>
-            <Text style={styles.stripTitle}>Task Manager</Text>
-            <Text style={styles.stripText}>
-              Organize and track your study tasks easily.
-            </Text>
-          </View>
-          <View style={styles.stripCard}>
-            <Text style={styles.stripTitle}>Earn Coins</Text>
-            <Text style={styles.stripText}>
-              Complete tasks and build up your balance.
-            </Text>
-          </View>
-          <View style={styles.stripCard}>
-            <Text style={styles.stripTitle}>Blind Boxes</Text>
-            <Text style={styles.stripText}>
-              Spend coins to open random rewards.
-            </Text>
-          </View>
-          <View style={styles.stripCard}>
-            <Text style={styles.stripTitle}>Collection</Text>
-            <Text style={styles.stripText}>
-              Save the items you unlock and show them off.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How it works</Text>
-
-          <View style={[styles.steps, isWide && styles.stepsWide]}>
-            {STEPS.map((item) => (
-              <View key={item.step} style={styles.stepCard}>
-                <Text style={styles.stepNumber}>{item.step}</Text>
-                <Text style={styles.stepTitle}>{item.title}</Text>
-                <Text style={styles.stepBody}>{item.body}</Text>
+            <View style={styles.heroMascotArea}>
+              <View style={styles.cockatielWrapper}>
+                <Animated.View style={cockatielMotionStyle}>
+                  <Cockatiel width={260} height={260} />
+                </Animated.View>
               </View>
-            ))}
+
+              <View style={styles.pufferfishWrapper}>
+                <Animated.View style={pufferfishMotionStyle}>
+                  <Animated.Image
+                    source={PUFFERFISH_OPEN}
+                    style={[
+                      styles.pufferfishImage,
+                      {
+                        opacity: openOpacity,
+                      },
+                    ]}
+                    resizeMode="contain"
+                  />
+                  <Animated.Image
+                    source={PUFFERFISH_CLOSED}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      styles.pufferfishImage,
+                      {
+                        opacity: closedOpacity,
+                      },
+                    ]}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+              </View>
+            </View>
           </View>
         </View>
 
-        <View style={styles.cta}>
-          <Text style={styles.ctaTitle}>Start building your streak</Text>
-          <Text style={styles.ctaSubtitle}>
-            Keep your study tasks in one place and use your progress to unlock
-            rewards.
-          </Text>
+        <SectionBlock
+          title="Everything you need to stay consistent"
+          subtitle="One simple loop that keeps you coming back every day."
+          alt
+        >
+          <View style={[styles.splitSection, isWide && styles.splitSectionWide]}>
+            <View style={styles.splitMain}>
+              <View style={[styles.cardGrid, isWide && styles.cardGridWide]}>
+                {FEATURES.map((feature) => (
+                  <View key={feature.title} style={styles.featureCard}>
+                    <Text style={styles.featureLabel}>{feature.label}</Text>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureBody}>{feature.body}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
 
-          <Pressable
-            style={styles.ctaBtn}
-            onPress={() => router.push("/register")}
-          >
-            <Text style={styles.ctaBtnText}>Create free account</Text>
-          </Pressable>
+            <View style={styles.splitAside}>
+              <View style={styles.asideMascotCard}>
+                <Animated.View style={pufferfishMotionStyle}>
+                  <Animated.Image
+                    source={PUFFERFISH_OPEN}
+                    style={[
+                      styles.asidePufferfish,
+                      { opacity: openOpacity },
+                    ]}
+                    resizeMode="contain"
+                  />
+                  <Animated.Image
+                    source={PUFFERFISH_CLOSED}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      styles.asidePufferfish,
+                      { opacity: closedOpacity },
+                    ]}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+              </View>
+              <Text style={styles.asideCaption}>
+                Puffy is there when you finish a task.
+              </Text>
+            </View>
+          </View>
+        </SectionBlock>
+
+        <SectionBlock
+          title="Start in four simple steps"
+          subtitle="No complicated setup. Just you, your tasks, and a mystery box waiting."
+        >
+          <View style={[styles.splitSection, isWide && styles.splitSectionWide]}>
+            <View style={styles.splitAside}>
+              <View style={styles.asideCockatielCard}>
+                <Animated.View style={cockatielMotionStyle}>
+                  <Cockatiel width={220} height={220} />
+                </Animated.View>
+              </View>
+              <Text style={styles.asideCaption}>
+                A little mascot never hurts.
+              </Text>
+            </View>
+
+            <View style={styles.splitMain}>
+              <View style={styles.stepList}>
+                {STEPS.map((item) => (
+                  <View key={item.step} style={styles.stepCard}>
+                    <Text style={styles.stepIndex}>{item.step}</Text>
+                    <View style={styles.stepTextWrap}>
+                      <Text style={styles.stepTitle}>{item.title}</Text>
+                      <Text style={styles.stepBody}>{item.body}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        </SectionBlock>
+
+        <SectionBlock
+          title="Build habits that actually stick."
+          subtitle="Streaks, coins, and mystery boxes make it easier to keep showing up."
+          alt
+        >
+          <View style={[styles.statsSection, isWide && styles.statsSectionWide]}>
+            <View style={styles.statGrid}>
+              {STATS.map((stat) => (
+                <View key={stat.label} style={styles.statCard}>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statLabel}>{stat.label.toUpperCase()}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.statsMascotCard}>
+              <Animated.View style={cockatielMotionStyle}>
+                <Cockatiel width={180} height={180} />
+              </Animated.View>
+              <Text style={styles.asideCaption}>A steady streak looks good.</Text>
+            </View>
+          </View>
+        </SectionBlock>
+
+        <View style={styles.ctaBand}>
+          <View style={[styles.ctaBandInner, isWide && styles.ctaBandInnerWide]}>
+            <View style={styles.ctaBandCopy}>
+              <Text style={styles.ctaBandTitle}>Ready to unbox your potential?</Text>
+              <Text style={styles.ctaBandText}>
+                Join students who actually look forward to studying every day.
+              </Text>
+            </View>
+
+            <Pressable
+              style={styles.ctaBandButton}
+              onPress={() => router.push("/register")}
+            >
+              <Text style={styles.ctaBandButtonText}>Get started for free</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>© 2026 UnboxedU</Text>
+          <View style={styles.footerLinks}>
+            <Text style={styles.footerLink}>Privacy</Text>
+            <Text style={styles.footerLink}>Terms</Text>
+            <Text style={styles.footerLink}>About</Text>
+            <Text style={styles.footerLink}>Contact</Text>
+          </View>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function SectionBlock({
+  title,
+  subtitle,
+  alt,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  alt?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <View style={[styles.sectionWrap, alt && styles.sectionWrapAlt]}>
+      <View style={styles.sectionInner}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+        </View>
+        {children}
+      </View>
     </View>
   );
 }
@@ -471,54 +631,21 @@ function MiniTask({
 }
 
 const styles = StyleSheet.create({
-  cockatielWrapper: {
-  position: "absolute",
-  right: 300,
-  bottom: 50,
-  zIndex: 10,
-  },
-
-  heroVisual: {
-    position: "relative",
-    minHeight: 360,
-    flex: 1.8,
-    overflow: "hidden",
-  },
-
-  heroImage: {
-    width: "100%",
-    height: 600,
-  },
-
-  heroFadeLeft: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 320,
-  },
-
-  heroFadeBottom: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 120,
-  },
   page: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#fff",
   },
   loading: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.background,
+    backgroundColor: "#fff",
   },
+
   navWrap: {
-    backgroundColor: colors.card,
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: "#EAEAF0",
   },
   nav: {
     flexDirection: "row",
@@ -526,12 +653,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 28,
     paddingVertical: 18,
-    maxWidth: 1500,
+    maxWidth: 1680,
     width: "100%",
     alignSelf: "center",
   },
   navWide: {
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
   },
   logoRow: {
     flexDirection: "row",
@@ -549,7 +676,7 @@ const styles = StyleSheet.create({
   navEmail: {
     fontSize: 15,
     color: colors.textMuted,
-    maxWidth: 220,
+    maxWidth: 240,
   },
   navGhost: {
     paddingHorizontal: 14,
@@ -557,6 +684,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: "#fff",
   },
   navGhostText: {
     fontSize: 16,
@@ -574,26 +702,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
+
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 48,
+    paddingBottom: 32,
   },
+
   hero: {
     paddingHorizontal: 28,
-    paddingTop: 56,
-    paddingBottom: 72,
-    maxWidth: 1500,
+    paddingTop: 28,
+    paddingBottom: 56,
+    maxWidth: 1680,
     width: "100%",
     alignSelf: "center",
   },
   heroWide: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 40,
-    paddingHorizontal: 32,
-    paddingTop: 64,
+    gap: 56,
+    paddingHorizontal: 40,
+    paddingTop: 72,
+    paddingBottom: 72,
   },
   heroCopy: {
     marginBottom: 32,
@@ -601,6 +732,7 @@ const styles = StyleSheet.create({
   heroCopyWide: {
     flex: 1,
     marginBottom: 0,
+    maxWidth: 700,
   },
   badge: {
     alignSelf: "flex-start",
@@ -608,7 +740,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   badgeText: {
     fontSize: 13,
@@ -618,21 +750,21 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 42,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.text,
     lineHeight: 50,
     marginBottom: 16,
-    letterSpacing: -0.4,
+    letterSpacing: -0.7,
   },
   heroTitleWide: {
-    fontSize: 60,
+    fontSize: 62,
     lineHeight: 68,
   },
   heroSubtitle: {
     fontSize: 18,
     lineHeight: 28,
     color: colors.textMuted,
-    marginBottom: 32,
+    marginBottom: 28,
     maxWidth: 620,
   },
   heroActions: {
@@ -652,7 +784,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   secondaryBtn: {
-    backgroundColor: colors.card,
+    backgroundColor: "#fff",
     paddingHorizontal: 28,
     paddingVertical: 16,
     borderRadius: 12,
@@ -664,175 +796,169 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  heroVisualWide: {
-    minHeight: 360,
-  },
-  heroArtCard: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    minHeight: 320,
-    justifyContent: "space-between",
-  },
-  heroArtTopRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
-  heroOrb: {
-    width: 56,
-    height: 56,
-    borderRadius: 999,
-    backgroundColor: "#f8e18a",
-    opacity: 0.95,
-  },
-  heroOrbSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    backgroundColor: "#d9cbff",
-    marginTop: 16,
-  },
-  heroChestWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 18,
-  },
-  heroChestGlow: {
-    position: "absolute",
-    width: 180,
-    height: 80,
-    borderRadius: 999,
-    backgroundColor: "#f6d88f",
-    opacity: 0.35,
-    bottom: 14,
-  },
-  heroChest: {
-    width: 170,
-    height: 110,
-    borderRadius: 16,
-    backgroundColor: "#b57a30",
-    borderWidth: 6,
-    borderColor: "#e4b04e",
-  },
-  heroChestLid: {
-    position: "absolute",
-    width: 180,
-    height: 46,
-    borderRadius: 16,
-    backgroundColor: "#d3942f",
-    top: -14,
-    borderWidth: 6,
-    borderColor: "#e4b04e",
-  },
-  heroArtBottomRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  heroStack: {
-    width: 120,
-    height: 96,
-    justifyContent: "flex-end",
-  },
-  heroStackBook: {
-    width: 100,
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: "#8aa7d4",
-    marginBottom: 6,
-  },
-  heroStackBook2: {
-    width: 108,
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: "#c1b6a6",
-    marginBottom: 6,
-  },
-  heroStackBook3: {
-    width: 116,
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: "#6b8ac9",
-  },
-  heroCup: {
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    borderWidth: 4,
-    borderColor: "#c5c5c5",
-    backgroundColor: "#f7f7f7",
-    marginBottom: 2,
-  },
-  featureStrip: {
-    maxWidth: 1500,
-    width: "100%",
-    alignSelf: "center",
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
+
+  heroMetaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 18,
+    marginTop: 26,
   },
-  stripCard: {
-    flex: 1,
-    minWidth: 210,
-    padding: 18,
-    borderRadius: 18,
+  heroMetaItem: {
+    minWidth: 90,
   },
-  stripTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+  heroMetaValue: {
+    fontSize: 20,
+    fontWeight: "800",
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 2,
   },
-  stripText: {
-    fontSize: 14,
-    lineHeight: 21,
+  heroMetaLabel: {
+    fontSize: 13,
     color: colors.textMuted,
   },
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 44,
-    maxWidth: 1500,
-    width: "100%",
-    alignSelf: "center",
+
+  heroVisual: {
+    position: "relative",
+    minHeight: 320,
+    flex: 1,
+    overflow: "hidden",
   },
-  sectionTitle: {
-    fontSize: 26,
+  heroVisualWide: {
+    minHeight: 380,
+  },
+  heroSpeechBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    marginBottom: 22,
+  },
+  heroSpeechRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+    flexWrap: "wrap",
+  },
+  heroSpeechPill: {
+    backgroundColor: "#F8F5FF",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  heroSpeechPillText: {
+    fontSize: 12,
     fontWeight: "700",
     color: colors.text,
+  },
+  heroSpeechMain: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.text,
+    fontWeight: "600",
+  },
+  heroMascotArea: {
+    position: "relative",
+    minHeight: 360,
+  },
+  cockatielWrapper: {
+    position: "absolute",
+    left: 0,
+    bottom: 0,
+    zIndex: 2,
+  },
+  pufferfishWrapper: {
+    position: "absolute",
+    right: 20,
+    top: 86,
+    zIndex: 3,
+  },
+  pufferfishImage: {
+    width: 180,
+    height: 180,
+  },
+
+  sectionWrap: {
+    width: "100%",
+    paddingVertical: 72,
+    backgroundColor: "#fff",
+  },
+  sectionWrapAlt: {
+    backgroundColor: "#F5F2FF",
+  },
+  sectionInner: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 40,
+  },
+  sectionHeader: {
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: colors.text,
     marginBottom: 10,
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   sectionSubtitle: {
     fontSize: 15,
     color: colors.textMuted,
-    marginBottom: 22,
     lineHeight: 23,
-    maxWidth: 720,
+    maxWidth: 760,
   },
-  featureGrid: {
+
+  splitSection: {
+    gap: 24,
+  },
+  splitSectionWide: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  splitMain: {
+    flex: 1.4,
+  },
+  splitAside: {
+    flex: 0.8,
+    justifyContent: "center",
+  },
+  asideMascotCard: {
+    alignSelf: "center",
+    padding: 12,
+  },
+  asideCockatielCard: {
+    alignSelf: "center",
+    padding: 12,
+  },
+  asidePufferfish: {
+    width: 220,
+    height: 220,
+  },
+  asideCaption: {
+    textAlign: "center",
+    color: colors.textMuted,
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  cardGrid: {
     gap: 16,
   },
-  featureGridWide: {
+  cardGridWide: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 18,
   },
   featureCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
+    backgroundColor: "#fff",
+    borderRadius: 18,
     padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
@@ -841,15 +967,15 @@ const styles = StyleSheet.create({
   },
   featureLabel: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.primary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 10,
   },
   featureTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: colors.text,
     marginBottom: 8,
   },
@@ -858,90 +984,167 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.textMuted,
   },
-  steps: {
-    gap: 16,
-  },
-  stepsWide: {
-    flexDirection: "row",
-    gap: 18,
+
+  stepList: {
+    gap: 14,
   },
   stepCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 22,
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "flex-start",
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: colors.border,
-    minWidth: 200,
+    borderRadius: 18,
+    padding: 18,
   },
-  stepNumber: {
-    fontSize: 13,
-    fontWeight: "800",
+  stepIndex: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: "#F3EEFF",
     color: colors.primary,
-    marginBottom: 10,
+    textAlign: "center",
+    textAlignVertical: "center",
+    fontWeight: "800",
+    overflow: "hidden",
+    lineHeight: 34,
+  },
+  stepTextWrap: {
+    flex: 1,
   },
   stepTitle: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   stepBody: {
     fontSize: 14,
     lineHeight: 22,
     color: colors.textMuted,
   },
-  cta: {
-    marginHorizontal: 28,
-    marginTop: 8,
-    marginBottom: 32,
-    backgroundColor: colors.primary,
-    borderRadius: 20,
-    padding: 40,
+
+  statsSection: {
+    gap: 20,
+  },
+  statsSectionWide: {
+    flexDirection: "row",
     alignItems: "center",
-    maxWidth: 1500,
-    alignSelf: "center",
-    width: "100%",
   },
-  ctaTitle: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: "#fff",
-    textAlign: "center",
-    marginBottom: 10,
-    letterSpacing: -0.3,
+  statGrid: {
+    flex: 1,
+    gap: 16,
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
-  ctaSubtitle: {
-    fontSize: 17,
-    color: "#C7D2FE",
-    textAlign: "center",
-    marginBottom: 28,
-    lineHeight: 26,
-    maxWidth: 820,
-  },
-  ctaBtn: {
+  statCard: {
+    width: "48%",
+    minWidth: 150,
     backgroundColor: "#fff",
-    paddingHorizontal: 30,
-    paddingVertical: 16,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   },
-  ctaBtnText: {
+  statValue: {
+    fontSize: 28,
+    fontWeight: "900",
     color: colors.primary,
-    fontWeight: "800",
-    fontSize: 16,
+    marginBottom: 4,
   },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+  },
+  statsMascotCard: {
+    flex: 0.7,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+  },
+
+  taskList: {
+    gap: 12,
+  },
+  taskCard: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 18,
+  },
+  taskTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  taskStatus: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  taskCoins: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.coin,
+  },
+  taskName: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.text,
+    marginBottom: 6,
+  },
+  taskDetail: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textMuted,
+  },
+
+  galleryCard: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
+  },
+  galleryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  galleryThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight,
+  },
+  galleryText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.text,
+  },
+
   dashboardHero: {
     paddingHorizontal: 28,
-    paddingTop: 52,
-    paddingBottom: 30,
-    maxWidth: 1500,
+    paddingTop: 24,
+    paddingBottom: 24,
+    maxWidth: 1680,
     width: "100%",
     alignSelf: "center",
   },
   dashboardHeroWide: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: 22,
+    gap: 24,
     paddingHorizontal: 40,
     paddingTop: 72,
   },
@@ -951,11 +1154,11 @@ const styles = StyleSheet.create({
   },
   dashboardTitle: {
     fontSize: 42,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.text,
     lineHeight: 50,
     marginBottom: 14,
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
   dashboardSubtitle: {
     fontSize: 17,
@@ -971,7 +1174,7 @@ const styles = StyleSheet.create({
   },
   dashboardPanel: {
     flex: 1,
-    backgroundColor: colors.card,
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 20,
@@ -986,14 +1189,14 @@ const styles = StyleSheet.create({
   },
   panelLabel: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   panelValue: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.coin,
   },
   miniTaskList: {
@@ -1019,11 +1222,11 @@ const styles = StyleSheet.create({
   },
   miniTaskCoins: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.coin,
   },
   boxCard: {
-    backgroundColor: colors.background,
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 16,
@@ -1056,7 +1259,7 @@ const styles = StyleSheet.create({
   },
   boxTitle: {
     fontSize: 19,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.text,
     marginBottom: 6,
   },
@@ -1068,71 +1271,84 @@ const styles = StyleSheet.create({
   },
   boxLink: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.primary,
   },
-  taskList: {
-    gap: 12,
+
+  ctaBand: {
+    backgroundColor: "#5B4AE6",
+    marginTop: 0,
   },
-  taskCard: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 18,
+  ctaBandInner: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 28,
+    paddingVertical: 36,
+    gap: 18,
   },
-  taskTopRow: {
+  ctaBandInnerWide: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 40,
+    paddingVertical: 44,
+  },
+  ctaBandCopy: {
+    flex: 1,
+  },
+  ctaBandTitle: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: "#fff",
+    lineHeight: 40,
+    letterSpacing: -0.4,
     marginBottom: 10,
   },
-  taskStatus: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  taskCoins: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.coin,
-  },
-  taskName: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: 6,
-  },
-  taskDetail: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: colors.textMuted,
-  },
-  galleryCard: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: 16,
-    gap: 12,
-  },
-  galleryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
-  },
-  galleryThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.primaryLight,
-  },
-  galleryText: {
+  ctaBandText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: colors.text,
+    lineHeight: 24,
+    color: "rgba(255,255,255,0.84)",
+    maxWidth: 520,
+  },
+  ctaBandButton: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.36)",
+    borderRadius: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  ctaBandButtonText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+
+  footer: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 40,
+    paddingTop: 18,
+    paddingBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 14,
+  },
+  footerText: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  footerLinks: {
+    flexDirection: "row",
+    gap: 18,
+    flexWrap: "wrap",
+  },
+  footerLink: {
+    color: colors.textMuted,
+    fontSize: 13,
   },
 });
