@@ -47,7 +47,7 @@ export default function MysteryScreen() {
   return (
     <View style={styles.page}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
+        <Pressable onPress={() => router.push("/")} hitSlop={10}>
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 

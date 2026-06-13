@@ -1,11 +1,12 @@
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    increment,
-    updateDoc,
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  runTransaction,
+  setDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
@@ -45,11 +46,34 @@ export async function openBox(): Promise<Reward> {
   const userRef = doc(db, "users", user.uid);
   const userSnap = await getDoc(userRef);
 
-  const coins = userSnap.data()?.coins ?? 0;
-  //if (coins < 50) throw new Error("Not enough coins");
+  if (!userSnap.exists()) {
+    await setDoc(userRef, {
+      uid: user.uid,
+      email: user.email ?? null,
+      coins: 0,
+      xp: 0,
+      level: 1,
+    });
 
-  await updateDoc(userRef, {
-    coins: increment(-50),
+    throw new Error(
+      "Your user profile was missing. It has been recreated with zero coins. Earn coins before opening a box.",
+    );
+  }
+
+  const coins = userSnap.data()?.coins ?? 0;
+  if (coins < 50) throw new Error("Not enough coins");
+
+  await runTransaction(db, async (transaction) => {
+    const freshSnap = await transaction.get(userRef);
+    const freshCoins = freshSnap.data()?.coins ?? 0;
+
+    if (freshCoins < 50) {
+      throw new Error("Not enough coins");
+    }
+
+    transaction.update(userRef, {
+      coins: increment(-50),
+    });
   });
 
   const rewardsSnap = await getDocs(collection(db, "rewards"));
