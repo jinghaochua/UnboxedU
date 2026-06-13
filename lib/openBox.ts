@@ -1,8 +1,6 @@
 import {
-  addDoc,
   collection,
   doc,
-  getDoc,
   getDocs,
   increment,
   runTransaction,
@@ -44,51 +42,45 @@ export async function openBox(): Promise<Reward> {
   if (!user) throw new Error("Not logged in");
 
   const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
 
-  if (!userSnap.exists()) {
-    await setDoc(userRef, {
-      uid: user.uid,
-      email: user.email ?? null,
-      coins: 0,
-      xp: 0,
-      level: 1,
-    });
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(userRef);
 
-    throw new Error(
-      "Your user profile was missing. It has been recreated with zero coins. Earn coins before opening a box.",
-    );
-  }
-
-  const coins = userSnap.data()?.coins ?? 0;
-  if (coins < 50) throw new Error("Not enough coins");
-
-  await runTransaction(db, async (transaction) => {
-    const freshSnap = await transaction.get(userRef);
-    const freshCoins = freshSnap.data()?.coins ?? 0;
-
-    if (freshCoins < 50) {
-      throw new Error("Not enough coins");
+    if (!snap.exists()) {
+      throw new Error("User profile missing");
     }
 
-    transaction.update(userRef, {
+    const coins = snap.data().coins ?? 0;
+    if (coins < 50) throw new Error("Not enough coins");
+
+    tx.update(userRef, {
       coins: increment(-50),
     });
   });
 
   const rewardsSnap = await getDocs(collection(db, "rewards"));
+  if (rewardsSnap.empty) throw new Error("No rewards configured");
 
-  const rewards: Reward[] = rewardsSnap.docs.map((doc) => {
-    const data = doc.data() as Omit<Reward, "id">;
-    return {
-      id: doc.id,
-      ...data,
-    };
-  });
+  const rewards = rewardsSnap.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Reward[];
 
   const reward = getWeightedRandomReward(rewards);
 
-  await addDoc(collection(db, "collections", user.uid, "items"), reward);
+  const itemRef = doc(db, "users", user.uid, "collections", reward.id);
+
+  await setDoc(
+    itemRef,
+    {
+      id: reward.id,
+      name: reward.name,
+      rarity: reward.rarity,
+      count: increment(1),
+      lastObtained: new Date(),
+    },
+    { merge: true },
+  );
 
   return reward;
 }

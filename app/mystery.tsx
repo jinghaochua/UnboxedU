@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { colors } from "@/constants/theme";
+import { useAuth } from "@/hooks/use-auth";
+import { db } from "@/lib/firebase";
 import { openBox } from "@/lib/openBox";
 import { router } from "expo-router";
+import { doc, onSnapshot } from "firebase/firestore";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 /*const REWARDS = [
@@ -15,18 +18,44 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 ]; */
 
 export default function MysteryScreen() {
-  const [opened, setOpened] = useState(false);
+  const { user } = useAuth();
+  const [hasReward, setHasReward] = useState(false);
   const [reward, setReward] = useState("");
   const [opening, setOpening] = useState(false);
+  const [coins, setCoins] = useState<number | null>(null);
+  const [loadingCoins, setLoadingCoins] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setCoins(null);
+      setLoadingCoins(false);
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid);
+    setLoadingCoins(true);
+
+    const unsubscribe = onSnapshot(
+      userRef,
+      (snapshot) => {
+        setCoins(snapshot.exists() ? (snapshot.data()?.coins ?? 0) : 0);
+        setLoadingCoins(false);
+      },
+      () => {
+        setLoadingCoins(false);
+      },
+    );
+
+    return unsubscribe;
+  }, [user]);
 
   const boxLabel = useMemo(() => {
     if (opening) return "Opening...";
-    if (opened) return "Box opened";
     return "Tap to open";
-  }, [opened, opening]);
+  }, [opening]);
 
   const handleOpen = async () => {
-    if (opening || opened) return;
+    if (opening) return;
 
     try {
       setOpening(true);
@@ -35,8 +64,8 @@ export default function MysteryScreen() {
 
       setTimeout(() => {
         setReward(reward.name);
+        setHasReward(true);
         setOpening(false);
-        setOpened(true);
       }, 900);
     } catch (error: any) {
       setOpening(false);
@@ -51,7 +80,12 @@ export default function MysteryScreen() {
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
-        <Text style={styles.title}>Mystery Box</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Mystery Box</Text>
+          <Text style={styles.balanceText}>
+            {loadingCoins ? "Loading coins..." : `${coins ?? 0} coins`}
+          </Text>
+        </View>
 
         <View style={{ width: 40 }} />
       </View>
@@ -69,15 +103,15 @@ export default function MysteryScreen() {
         </Text>
 
         <Pressable
-          style={[styles.button, (opening || opened) && styles.buttonDisabled]}
+          style={[styles.button, opening && styles.buttonDisabled]}
           onPress={handleOpen}
         >
           <Text style={styles.buttonText}>
-            {opened ? "Opened" : opening ? "Opening" : "Open box"}
+            {opening ? "Opening" : "Open box"}
           </Text>
         </Pressable>
 
-        {opened ? (
+        {hasReward ? (
           <View style={styles.rewardCard}>
             <Text style={styles.rewardLabel}>You got</Text>
             <Text style={styles.rewardText}>{reward}</Text>
@@ -113,10 +147,19 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.primary,
   },
+  titleContainer: {
+    alignItems: "center",
+  },
   title: {
     fontSize: 20,
     fontWeight: "700",
     color: colors.text,
+  },
+  balanceText: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.coin,
   },
   card: {
     backgroundColor: colors.card,
