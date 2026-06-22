@@ -23,27 +23,21 @@ export default function MysteryScreen() {
   const [reward, setReward] = useState("");
   const [opening, setOpening] = useState(false);
   const [coins, setCoins] = useState<number | null>(null);
-  const [loadingCoins, setLoadingCoins] = useState(true);
+  const loadingCoins = Boolean(user && coins === null);
 
   useEffect(() => {
     if (!user) {
-      setCoins(null);
-      setLoadingCoins(false);
       return;
     }
 
     const userRef = doc(db, "users", user.uid);
-    setLoadingCoins(true);
 
     const unsubscribe = onSnapshot(
       userRef,
       (snapshot) => {
         setCoins(snapshot.exists() ? (snapshot.data()?.coins ?? 0) : 0);
-        setLoadingCoins(false);
       },
-      () => {
-        setLoadingCoins(false);
-      },
+      () => {},
     );
 
     return unsubscribe;

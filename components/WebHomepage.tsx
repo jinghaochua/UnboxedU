@@ -121,7 +121,7 @@ export function WebHomepage() {
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
 
     loop.start();
@@ -145,7 +145,7 @@ export function WebHomepage() {
           useNativeDriver: true,
         }),
         Animated.delay(3800),
-      ])
+      ]),
     );
 
     blinkLoop.start();
@@ -234,7 +234,8 @@ export function WebHomepage() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.dashboardHero, isWide && styles.dashboardHeroWide]}>
+          <View
+            style={[styles.dashboardHero, isWide && styles.dashboardHeroWide]}
             <View style={styles.dashboardCopy}>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>Signed in</Text>
@@ -253,7 +254,14 @@ export function WebHomepage() {
                   style={styles.primaryBtn}
                   onPress={() => router.push("/mystery")}
                 >
-                  <Text style={styles.primaryBtnText}>Open mystery box</Text>
+                  <Text style={styles.primaryBtnText}>Open Mystery Box</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.primaryBtn}
+                  onPress={() => router.push("/tasks" as never)}
+                >
+                  <Text style={styles.primaryBtnText}>Open Tasks</Text>
                 </Pressable>
 
                 <Pressable
@@ -400,7 +408,9 @@ export function WebHomepage() {
                 style={styles.secondaryBtn}
                 onPress={() => router.push("/login")}
               >
-                <Text style={styles.secondaryBtnText}>I already have an account</Text>
+                <Text style={styles.secondaryBtnText}>
+                  I already have an account
+                </Text>
               </Pressable>
             </View>
 
@@ -415,7 +425,6 @@ export function WebHomepage() {
           </View>
 
           <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
-
             <View style={styles.heroMascotArea}>
               <View style={styles.cockatielWrapper}>
                 <Animated.View style={cockatielMotionStyle}>
@@ -457,7 +466,9 @@ export function WebHomepage() {
           subtitle="One simple loop that keeps you coming back every day."
           alt
         >
-          <View style={[styles.splitSection, isWide && styles.splitSectionWide]}>
+          <View
+            style={[styles.splitSection, isWide && styles.splitSectionWide]}
+          >
             <View style={styles.splitMain}>
               <View style={[styles.cardGrid, isWide && styles.cardGridWide]}>
                 {FEATURES.map((feature) => (
@@ -475,10 +486,7 @@ export function WebHomepage() {
                 <Animated.View style={pufferfishMotionStyle}>
                   <Animated.Image
                     source={PUFFERFISH_OPEN}
-                    style={[
-                      styles.asidePufferfish,
-                      { opacity: openOpacity },
-                    ]}
+                    style={[styles.asidePufferfish, { opacity: openOpacity }]}
                     resizeMode="contain"
                   />
                   <Animated.Image
@@ -503,7 +511,9 @@ export function WebHomepage() {
           title="Start in four simple steps"
           subtitle="No complicated setup. Just you, your tasks, and a mystery box waiting."
         >
-          <View style={[styles.splitSection, isWide && styles.splitSectionWide]}>
+          <View
+            style={[styles.splitSection, isWide && styles.splitSectionWide]}
+          >
             <View style={styles.splitAside}>
               <View style={styles.asideCockatielCard}>
                 <Animated.View style={cockatielMotionStyle}>
@@ -536,12 +546,16 @@ export function WebHomepage() {
           subtitle="Streaks, coins, and mystery boxes make it easier to keep showing up."
           alt
         >
-          <View style={[styles.statsSection, isWide && styles.statsSectionWide]}>
+          <View
+            style={[styles.statsSection, isWide && styles.statsSectionWide]}
+          >
             <View style={styles.statGrid}>
               {STATS.map((stat) => (
                 <View key={stat.label} style={styles.statCard}>
                   <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label.toUpperCase()}</Text>
+                  <Text style={styles.statLabel}>
+                    {stat.label.toUpperCase()}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -550,15 +564,21 @@ export function WebHomepage() {
               <Animated.View style={cockatielMotionStyle}>
                 <Cockatiel width={180} height={180} />
               </Animated.View>
-              <Text style={styles.asideCaption}>A steady streak looks good.</Text>
+              <Text style={styles.asideCaption}>
+                A steady streak looks good.
+              </Text>
             </View>
           </View>
         </SectionBlock>
 
         <View style={styles.ctaBand}>
-          <View style={[styles.ctaBandInner, isWide && styles.ctaBandInnerWide]}>
+          <View
+            style={[styles.ctaBandInner, isWide && styles.ctaBandInnerWide]}
+          >
             <View style={styles.ctaBandCopy}>
-              <Text style={styles.ctaBandTitle}>Ready to unbox your potential?</Text>
+              <Text style={styles.ctaBandTitle}>
+                Ready to unbox your potential?
+              </Text>
               <Text style={styles.ctaBandText}>
                 Join students who actually look forward to studying every day.
               </Text>

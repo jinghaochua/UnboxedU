@@ -35,6 +35,13 @@ export default function HomeScreen() {
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.subtitle}>{user.email}</Text>
 
+        <TouchableOpacity
+          style={[styles.button, styles.tasksButton]}
+          onPress={() => router.push("/tasks" as never)}
+        >
+          <Text style={styles.buttonText}>Tasks</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.button} onPress={() => signOut(auth)}>
           <Text style={styles.buttonText}>Log out</Text>
         </TouchableOpacity>
@@ -107,6 +114,9 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     backgroundColor: colors.primaryLight,
+  },
+  tasksButton: {
+    backgroundColor: colors.accent,
   },
   buttonText: {
     color: "#fff",
