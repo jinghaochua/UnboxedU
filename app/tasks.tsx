@@ -1,30 +1,62 @@
 import { Redirect, router } from "expo-router";
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
+
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+
+import { db } from "@/lib/firebase";
 
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState } from "react";
 
-const ACTIVE_TASK = {
-  title: "Finish CS1231 Tutorial",
-  duration: "60 min",
-  coins: 20,
+type Task = {
+  id: string;
+  title: string;
+  durationMinutes: number;
+  coins: number;
+  status: string;
 };
-
-const COMPLETED_TASKS = [
-  { title: "Review lecture notes", detail: "Completed 2 hours ago" },
-  { title: "Practice quiz questions", detail: "Completed yesterday" },
-  { title: "Read one chapter", detail: "Completed this morning" },
-];
 
 export default function TasksScreen() {
   const { user, loading } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const loadTasks = async () => {
+      if (!user) return;
+
+      try {
+        const q = query(
+          collection(db, "users", user.uid, "tasks"),
+          orderBy("createdAt", "desc"),
+        );
+
+        const snapshot = await getDocs(q);
+
+        const loadedTasks: Task[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Task, "id">),
+        }));
+
+        setTasks(loadedTasks);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadTasks();
+  }, [user]);
+
+  const pendingTasks = tasks.filter((task) => task.status === "pending");
+
+  const completedTasks = tasks.filter((task) => task.status === "completed");
 
   if (loading) {
     return (
@@ -45,50 +77,62 @@ export default function TasksScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerCopy}>
           <Text style={styles.eyebrow}>Tasks</Text>
           <Text style={styles.title}>What you need to finish</Text>
           <Text style={styles.subtitle}>
-            Keep the active task visible and move through the rest one by one.
+            Keep your active tasks visible and move through the rest one by one.
           </Text>
         </View>
 
-        <View style={styles.coinPill}>
-          <Text style={styles.coinValue}>120</Text>
-          <Text style={styles.coinLabel}>coins</Text>
-        </View>
-      </View>
+        <View style={styles.headerActions}>
+          <View style={styles.coinPill}>
+            <Text style={styles.coinValue}>120</Text>
+            <Text style={styles.coinLabel}>coins</Text>
+          </View>
 
-      <View style={styles.primaryCard}>
-        <View style={styles.primaryCardTop}>
-          <Text style={styles.taskFlag}>Active task</Text>
-          <Text style={styles.taskReward}>+{ACTIVE_TASK.coins} coins</Text>
-        </View>
-
-        <Text style={styles.taskTitle}>{ACTIVE_TASK.title}</Text>
-        <Text style={styles.taskMeta}>{ACTIVE_TASK.duration}</Text>
-
-        <View style={styles.actionRow}>
-          <Pressable style={styles.primaryButton} onPress={() => {}}>
-            <Text style={styles.primaryButtonText}>Start Focus Session</Text>
-          </Pressable>
-
-          <Pressable style={styles.secondaryButton} onPress={() => {}}>
-            <Text style={styles.secondaryButtonText}>Create task</Text>
+          <Pressable
+            style={styles.createTaskButton}
+            onPress={() => router.push("/tasks/create")}
+          >
+            <Text style={styles.createTaskButtonText}>Create task</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Active tasks</Text>
+        <Text style={styles.sectionCount}>{pendingTasks.length} open</Text>
+      </View>
+
+      <View style={styles.taskList}>
+        {pendingTasks.map((task) => (
+          <View key={task.id} style={styles.taskCard}>
+            <View style={styles.taskCardContent}>
+              <Text style={styles.taskFlag}>Active task</Text>
+              <Text style={styles.taskTitle}>{task.title}</Text>
+              <Text style={styles.taskMeta}>{task.durationMinutes} min</Text>
+              <Text style={styles.taskReward}>+{task.coins} coins</Text>
+            </View>
+
+            <Pressable style={styles.taskActionButton} onPress={() => {}}>
+              <Text style={styles.taskActionButtonText}>
+                Start Focus Session
+              </Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Completed tasks</Text>
-        <Text style={styles.sectionCount}>{COMPLETED_TASKS.length} done</Text>
+        <Text style={styles.sectionCount}>{completedTasks.length} done</Text>
       </View>
 
       <View style={styles.completedList}>
-        {COMPLETED_TASKS.map((task) => (
+        {completedTasks.map((task) => (
           <View key={task.title} style={styles.completedCard}>
             <Text style={styles.completedTitle}>{task.title}</Text>
-            <Text style={styles.completedDetail}>{task.detail}</Text>
           </View>
         ))}
       </View>
@@ -120,6 +164,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 16,
+  },
+  headerCopy: {
+    flex: 1,
+  },
+  headerActions: {
+    gap: 10,
+    alignItems: "flex-end",
   },
   eyebrow: {
     color: colors.primaryDark,
@@ -164,18 +215,35 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  primaryCard: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 20,
+  createTaskButton: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  primaryCardTop: {
+  createTaskButtonText: {
+    color: colors.primaryDark,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  taskList: {
+    gap: 12,
+  },
+  taskCard: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    gap: 16,
+  },
+  taskCardContent: {
+    flex: 1,
   },
   taskFlag: {
     color: colors.primary,
@@ -201,11 +269,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 18,
-    flexWrap: "wrap",
+  taskActionButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 132,
+  },
+  taskActionButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "center",
   },
   primaryButton: {
     backgroundColor: colors.primary,
