@@ -1,11 +1,11 @@
 import { Redirect, router } from "expo-router";
 import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 import { colors } from "@/constants/theme";
@@ -48,7 +48,9 @@ export default function TasksScreen() {
         <View>
           <Text style={styles.eyebrow}>Tasks</Text>
           <Text style={styles.title}>What you need to finish</Text>
-          <Text style={styles.subtitle}>Keep the active task visible and move through the rest one by one.</Text>
+          <Text style={styles.subtitle}>
+            Keep the active task visible and move through the rest one by one.
+          </Text>
         </View>
 
         <View style={styles.coinPill}>

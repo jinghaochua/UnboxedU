@@ -236,6 +236,7 @@ export function WebHomepage() {
         >
           <View
             style={[styles.dashboardHero, isWide && styles.dashboardHeroWide]}
+          >
             <View style={styles.dashboardCopy}>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>Signed in</Text>
