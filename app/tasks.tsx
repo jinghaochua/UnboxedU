@@ -8,7 +8,16 @@ import {
   View,
 } from "react-native";
 
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  increment,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc,
+} from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 
@@ -27,6 +36,24 @@ type Task = {
 export default function TasksScreen() {
   const { user, loading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [userCoins, setUserCoins] = useState(0);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+
+  useEffect(() => {
+    if (!user) {
+      setUserCoins(0);
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid);
+
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      setUserCoins(snapshot.exists() ? (snapshot.data()?.coins ?? 0) : 0);
+    });
+
+    return unsubscribe;
+  }, [user]);
 
   useEffect(() => {
     const loadTasks = async () => {
@@ -58,6 +85,75 @@ export default function TasksScreen() {
 
   const completedTasks = tasks.filter((task) => task.status === "completed");
 
+  const activeTask =
+    pendingTasks.find((task) => task.id === activeTaskId) ?? null;
+
+  useEffect(() => {
+    if (!activeTaskId || timeRemaining <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeRemaining((current) => {
+        if (current <= 1) {
+          return 0;
+        }
+
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeTaskId, timeRemaining]);
+
+  useEffect(() => {
+    if (!activeTaskId || timeRemaining > 0 || !user) {
+      return;
+    }
+
+    const completeTask = async () => {
+      try {
+        const completedTask = tasks.find((task) => task.id === activeTaskId);
+        const reward = completedTask?.coins ?? 0;
+
+        await Promise.all([
+          updateDoc(doc(db, "users", user.uid, "tasks", activeTaskId), {
+            status: "completed",
+          }),
+          updateDoc(doc(db, "users", user.uid), {
+            coins: increment(reward),
+          }),
+        ]);
+
+        setTasks((currentTasks) =>
+          currentTasks.map((task) =>
+            task.id === activeTaskId ? { ...task, status: "completed" } : task,
+          ),
+        );
+        setActiveTaskId(null);
+        setTimeRemaining(0);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    completeTask();
+  }, [activeTaskId, timeRemaining, user]);
+
+  const handleStartFocusSession = (task: Task) => {
+    setActiveTaskId(task.id);
+    setTimeRemaining(task.durationMinutes / 10); // change to seconds for testing purposes, in production it should be task.durationMinutes * 60
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const secs = (seconds % 60).toString().padStart(2, "0");
+
+    return `${mins}:${secs}`;
+  };
+
   if (loading) {
     return (
       <View style={styles.loading}>
@@ -87,7 +183,7 @@ export default function TasksScreen() {
 
         <View style={styles.headerActions}>
           <View style={styles.coinPill}>
-            <Text style={styles.coinValue}>120</Text>
+            <Text style={styles.coinValue}>{userCoins}</Text>
             <Text style={styles.coinLabel}>coins</Text>
           </View>
 
@@ -99,6 +195,18 @@ export default function TasksScreen() {
           </Pressable>
         </View>
       </View>
+
+      {activeTask && timeRemaining > 0 ? (
+        <View style={styles.focusTimerCard}>
+          <Text style={styles.focusTimerLabel}>Focus session</Text>
+          <Text style={styles.focusTimerValue}>
+            {formatTime(timeRemaining)}
+          </Text>
+          <Text style={styles.focusTimerSubtext}>
+            Working on {activeTask.title}
+          </Text>
+        </View>
+      ) : null}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Active tasks</Text>
@@ -115,7 +223,10 @@ export default function TasksScreen() {
               <Text style={styles.taskReward}>+{task.coins} coins</Text>
             </View>
 
-            <Pressable style={styles.taskActionButton} onPress={() => {}}>
+            <Pressable
+              style={styles.taskActionButton}
+              onPress={() => handleStartFocusSession(task)}
+            >
               <Text style={styles.taskActionButtonText}>
                 Start Focus Session
               </Text>
@@ -227,6 +338,32 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontSize: 14,
     fontWeight: "800",
+  },
+  focusTimerCard: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  focusTimerLabel: {
+    color: colors.primaryDark,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  focusTimerValue: {
+    color: colors.text,
+    fontSize: 36,
+    fontWeight: "900",
+    marginTop: 8,
+  },
+  focusTimerSubtext: {
+    color: colors.textMuted,
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "700",
   },
   taskList: {
     gap: 12,
