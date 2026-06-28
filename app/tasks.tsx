@@ -10,6 +10,7 @@ import {
 
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   increment,
@@ -39,6 +40,7 @@ export default function TasksScreen() {
   const [userCoins, setUserCoins] = useState(0);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -85,11 +87,22 @@ export default function TasksScreen() {
 
   const completedTasks = tasks.filter((task) => task.status === "completed");
 
+  async function handleDeleteTask(id: string) {
+    if (!user) return;
+
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "tasks", id));
+      setTasks((current) => current.filter((t) => t.id !== id));
+    } catch (error) {
+      console.error("Failed to delete task", error);
+    }
+  }
+
   const activeTask =
     pendingTasks.find((task) => task.id === activeTaskId) ?? null;
 
   useEffect(() => {
-    if (!activeTaskId || timeRemaining <= 0) {
+    if (!activeTaskId || timeRemaining <= 0 || isPaused) {
       return;
     }
 
@@ -104,7 +117,7 @@ export default function TasksScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeTaskId, timeRemaining]);
+  }, [activeTaskId, timeRemaining, isPaused]);
 
   useEffect(() => {
     if (!activeTaskId || timeRemaining > 0 || !user) {
@@ -132,6 +145,7 @@ export default function TasksScreen() {
         );
         setActiveTaskId(null);
         setTimeRemaining(0);
+        setIsPaused(false);
       } catch (error) {
         console.error(error);
       }
@@ -143,6 +157,17 @@ export default function TasksScreen() {
   const handleStartFocusSession = (task: Task) => {
     setActiveTaskId(task.id);
     setTimeRemaining(task.durationMinutes / 10); // change to seconds for testing purposes, in production it should be task.durationMinutes * 60
+    setIsPaused(false);
+  };
+
+  const handleStopFocusSession = () => {
+    setActiveTaskId(null);
+    setTimeRemaining(0);
+    setIsPaused(false);
+  };
+
+  const handleTogglePause = () => {
+    setIsPaused((p) => !p);
   };
 
   const formatTime = (seconds: number) => {
@@ -205,6 +230,22 @@ export default function TasksScreen() {
           <Text style={styles.focusTimerSubtext}>
             Working on {activeTask.title}
           </Text>
+
+          <View style={styles.focusTimerActions}>
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={handleTogglePause}
+            >
+              <Text style={styles.secondaryButtonText}>{isPaused ? "Resume" : "Pause"}</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.secondaryButton, { marginLeft: 8 }]}
+              onPress={handleStopFocusSession}
+            >
+              <Text style={styles.secondaryButtonText}>Stop</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
 
@@ -215,23 +256,12 @@ export default function TasksScreen() {
 
       <View style={styles.taskList}>
         {pendingTasks.map((task) => (
-          <View key={task.id} style={styles.taskCard}>
-            <View style={styles.taskCardContent}>
-              <Text style={styles.taskFlag}>Active task</Text>
-              <Text style={styles.taskTitle}>{task.title}</Text>
-              <Text style={styles.taskMeta}>{task.durationMinutes} min</Text>
-              <Text style={styles.taskReward}>+{task.coins} coins</Text>
-            </View>
-
-            <Pressable
-              style={styles.taskActionButton}
-              onPress={() => handleStartFocusSession(task)}
-            >
-              <Text style={styles.taskActionButtonText}>
-                Start Focus Session
-              </Text>
-            </Pressable>
-          </View>
+          <PendingTaskRow
+            key={task.id}
+            task={task}
+            onDelete={handleDeleteTask}
+            onStart={() => handleStartFocusSession(task)}
+          />
         ))}
       </View>
 
@@ -242,9 +272,11 @@ export default function TasksScreen() {
 
       <View style={styles.completedList}>
         {completedTasks.map((task) => (
-          <View key={task.title} style={styles.completedCard}>
-            <Text style={styles.completedTitle}>{task.title}</Text>
-          </View>
+          <CompletedTaskRow
+            key={task.id}
+            task={task}
+            onDelete={handleDeleteTask}
+          />
         ))}
       </View>
 
@@ -252,6 +284,84 @@ export default function TasksScreen() {
         <Text style={styles.footerButtonText}>Back to home</Text>
       </Pressable>
     </ScrollView>
+  );
+}
+
+function CompletedTaskRow({
+  task,
+  onDelete,
+}: {
+  task: { id: string; title: string };
+  onDelete: (id: string) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <View style={styles.completedCard}>
+      <Text style={styles.completedTitle}>{task.title}</Text>
+      <Pressable
+        style={[styles.deleteButton, hovered && styles.deleteButtonHover]}
+        onPress={() => onDelete(task.id)}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        onPressIn={() => setHovered(true)}
+        onPressOut={() => setHovered(false)}
+      >
+        <Text
+          style={[
+            styles.deleteButtonText,
+            hovered && styles.deleteButtonTextHover,
+          ]}
+        >
+          ×
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function PendingTaskRow({
+  task,
+  onDelete,
+  onStart,
+}: {
+  task: { id: string; title: string; durationMinutes: number; coins: number };
+  onDelete: (id: string) => void;
+  onStart: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <View style={[styles.taskCard, { position: "relative" }]}>
+      <View style={styles.taskCardContent}>
+        <Text style={styles.taskFlag}>Active task</Text>
+        <Text style={styles.taskTitle}>{task.title}</Text>
+        <Text style={styles.taskMeta}>{task.durationMinutes} min</Text>
+        <Text style={styles.taskReward}>+{task.coins} coins</Text>
+      </View>
+
+      <Pressable style={styles.taskActionButton} onPress={onStart}>
+        <Text style={styles.taskActionButtonText}>Start Focus Session</Text>
+      </Pressable>
+
+      <Pressable
+        style={[styles.deleteButton, hovered && styles.deleteButtonHover]}
+        onPress={() => onDelete(task.id)}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        onPressIn={() => setHovered(true)}
+        onPressOut={() => setHovered(false)}
+      >
+        <Text
+          style={[
+            styles.deleteButtonText,
+            hovered && styles.deleteButtonTextHover,
+          ]}
+        >
+          ×
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -274,7 +384,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 16,
   },
   headerCopy: {
     flex: 1,
@@ -364,6 +473,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 14,
     fontWeight: "700",
+  },
+  focusTimerActions: {
+    flexDirection: "row",
+    marginTop: 12,
+    alignItems: "center",
   },
   taskList: {
     gap: 12,
@@ -493,5 +607,23 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "900",
+  },
+  deleteButton: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+    padding: 6,
+    borderRadius: 8,
+  },
+  deleteButtonHover: {
+    backgroundColor: "#FEE2E2",
+  },
+  deleteButtonText: {
+    color: colors.textMuted,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  deleteButtonTextHover: {
+    color: "#EF4444",
   },
 });

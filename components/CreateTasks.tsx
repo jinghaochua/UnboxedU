@@ -53,6 +53,9 @@ export default function CreateTaskScreen() {
 
   return (
     <View style={styles.container}>
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Text style={styles.backButtonText}>‹ Back</Text>
+      </Pressable>
       <Text style={styles.heading}>Create Task</Text>
 
       <Text style={styles.label}>Task Title</Text>
@@ -183,5 +186,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "800",
+  },
+  backButton: {
+    marginBottom: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    alignSelf: "flex-start",
+  },
+  backButtonText: {
+    color: colors.textMuted,
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
