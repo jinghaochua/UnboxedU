@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,6 +20,8 @@ export default function LoginScreen() {
   const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -28,13 +29,48 @@ export default function LoginScreen() {
     }
   }, [loading, user]);
 
+  const formatAuthError = (error: unknown) => {
+    if (typeof error === "object" && error && "code" in error) {
+      const code = (error as { code?: string }).code;
+
+      switch (code) {
+        case "auth/invalid-email":
+          return "Please enter a valid email address.";
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+        case "auth/invalid-credential":
+          return "We couldn’t sign you in. Please check your email and password.";
+        case "auth/too-many-requests":
+          return "Too many attempts. Please try again later.";
+        default:
+          return "Something went wrong. Please try again.";
+      }
+    }
+
+    return "Something went wrong. Please try again.";
+  };
+
   const handleLogin = async () => {
+    if (!email.trim()) {
+      setErrorMessage("Please enter your email.");
+      return;
+    }
+
+    if (!password) {
+      setErrorMessage("Please enter your password.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       router.replace("/");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Login failed";
-      Alert.alert("Login error", message);
+      setErrorMessage(formatAuthError(error));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -63,9 +99,12 @@ export default function LoginScreen() {
           <TextInput
             placeholder="you@email.com"
             placeholderTextColor="#7A7A7A"
-            style={styles.input}
+            style={[styles.input, errorMessage ? styles.inputError : null]}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errorMessage) setErrorMessage(null);
+            }}
             autoCapitalize="none"
             keyboardType="email-address"
           />
@@ -75,21 +114,34 @@ export default function LoginScreen() {
             placeholder="••••••••"
             placeholderTextColor="#7A7A7A"
             secureTextEntry
-            style={styles.input}
+            style={[styles.input, errorMessage ? styles.inputError : null]}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errorMessage) setErrorMessage(null);
+            }}
           />
 
-          <Pressable
-            onPress={() =>
-              Alert.alert("Forgot password", "Hook this up to your reset flow.")
-            }
-          >
+          {errorMessage ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
+          <Pressable onPress={() => {}}>
             <Text style={styles.forgot}>Forgot password?</Text>
           </Pressable>
 
-          <Pressable style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Log in</Text>
+          <Pressable
+            style={[styles.button, isSubmitting && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Log in</Text>
+            )}
           </Pressable>
 
           <View style={styles.bottomRow}>
@@ -164,7 +216,24 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     color: "#fff",
     fontSize: 15,
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  inputError: {
+    borderColor: "#F87171",
+  },
+  errorBox: {
+    backgroundColor: "rgba(248, 113, 113, 0.15)",
+    borderWidth: 1,
+    borderColor: "#F87171",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: "#FECACA",
+    fontSize: 13,
+    fontWeight: "600",
   },
   forgot: {
     textAlign: "right",
@@ -177,6 +246,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",

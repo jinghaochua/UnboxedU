@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,13 +14,16 @@ import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 import { useAuth } from "@/hooks/use-auth";
+import { ensureUserProfile } from "@/lib/authService";
 import { auth } from "@/lib/firebase";
 
 export default function RegisterScreen() {
   const { user, loading } = useAuth();
-  const [fullName, setFullName] = useState("");
+  const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -29,13 +31,58 @@ export default function RegisterScreen() {
     }
   }, [loading, user]);
 
+  const formatAuthError = (error: unknown) => {
+    if (typeof error === "object" && error && "code" in error) {
+      const code = (error as { code?: string }).code;
+
+      switch (code) {
+        case "auth/invalid-email":
+          return "Please enter a valid email address.";
+        case "auth/email-already-in-use":
+          return "An account with this email already exists.";
+        case "auth/weak-password":
+          return "Password should be at least 6 characters.";
+        case "auth/too-many-requests":
+          return "Too many attempts. Please try again later.";
+        default:
+          return "Something went wrong. Please try again.";
+      }
+    }
+
+    return "Something went wrong. Please try again.";
+  };
+
   const handleRegister = async () => {
+    if (!userName.trim()) {
+      setErrorMessage("Please enter your user name.");
+      return;
+    }
+
+    if (!email.trim()) {
+      setErrorMessage("Please enter your email.");
+      return;
+    }
+
+    if (!password) {
+      setErrorMessage("Please enter a password.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password,
+      );
+      await ensureUserProfile(userCredential.user, userName.trim());
       router.replace("/");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Registration failed";
-      Alert.alert("Register error", message);
+      setErrorMessage(formatAuthError(error));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -60,22 +107,28 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.label}>Full name</Text>
+          <Text style={styles.label}>User name</Text>
           <TextInput
             placeholder="Johnathan"
             placeholderTextColor="#7A7A7A"
-            style={styles.input}
-            value={fullName}
-            onChangeText={setFullName}
+            style={[styles.input, errorMessage ? styles.inputError : null]}
+            value={userName}
+            onChangeText={(text) => {
+              setUserName(text);
+              if (errorMessage) setErrorMessage(null);
+            }}
           />
 
           <Text style={styles.label}>Email</Text>
           <TextInput
             placeholder="you@email.com"
             placeholderTextColor="#7A7A7A"
-            style={styles.input}
+            style={[styles.input, errorMessage ? styles.inputError : null]}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errorMessage) setErrorMessage(null);
+            }}
             autoCapitalize="none"
             keyboardType="email-address"
           />
@@ -85,13 +138,35 @@ export default function RegisterScreen() {
             placeholder="••••••••"
             placeholderTextColor="#7A7A7A"
             secureTextEntry
-            style={styles.input}
+            style={[styles.input, errorMessage ? styles.inputError : null]}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errorMessage) setErrorMessage(null);
+            }}
           />
+          <Text style={styles.passwordHint}>Minimum 6 characters</Text>
 
-          <Pressable style={[styles.button, styles.registerButton]} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Create account</Text>
+          {errorMessage ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
+          <Pressable
+            style={[
+              styles.button,
+              styles.registerButton,
+              isSubmitting && styles.buttonDisabled,
+            ]}
+            onPress={handleRegister}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Create account</Text>
+            )}
           </Pressable>
 
           <View style={styles.bottomRow}>
@@ -169,13 +244,39 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     color: "#fff",
     fontSize: 15,
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  inputError: {
+    borderColor: "#F87171",
+  },
+  errorBox: {
+    backgroundColor: "rgba(248, 113, 113, 0.15)",
+    borderWidth: 1,
+    borderColor: "#F87171",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: "#FECACA",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  passwordHint: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: -4,
+    marginBottom: 12,
   },
   button: {
     backgroundColor: "#6C5CE7",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   registerButton: {
     backgroundColor: "#F59E0B",
