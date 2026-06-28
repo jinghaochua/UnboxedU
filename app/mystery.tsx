@@ -1,21 +1,59 @@
+import { router } from "expo-router";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { openBox } from "@/lib/openBox";
-import { router } from "expo-router";
-import { doc, onSnapshot } from "firebase/firestore";
-import { Pressable, StyleSheet, Text, View } from "react-native";
 
-/*const REWARDS = [
-  "Study sticker",
-  "Focus badge",
-  "Rare card",
-  "Extra coin boost",
-  "Mini avatar frame",
-  "Secret note",
-]; */
+const BOXES = [
+  {
+    name: "Common",
+    coins: 100,
+    accent: "#5C55E6",
+    soft: "#ECEAFE",
+    border: "#E7E7F5",
+    button: "#5C55E6",
+    buttonText: "#fff",
+  },
+  {
+    name: "Rare",
+    coins: 250,
+    accent: "#2D8F2F",
+    soft: "#EAF4D7",
+    border: "#E7E7F5",
+    button: "#25A34A",
+    buttonText: "#fff",
+  },
+  {
+    name: "Epic",
+    coins: 500,
+    accent: "#B56B00",
+    soft: "#FBEED7",
+    border: "#5D57F2",
+    button: "#F6A313",
+    buttonText: "#fff",
+    badge: "Almost there",
+  },
+  {
+    name: "Legendary",
+    coins: 1000,
+    accent: "#D6A08B",
+    soft: "#F9EFED",
+    border: "#E7E7F5",
+    button: "#F3F3F6",
+    buttonText: "#C8C8D4",
+    locked: true,
+  },
+];
 
 export default function MysteryScreen() {
   const { user } = useAuth();
@@ -23,12 +61,11 @@ export default function MysteryScreen() {
   const [reward, setReward] = useState("");
   const [opening, setOpening] = useState(false);
   const [coins, setCoins] = useState<number | null>(null);
+
   const loadingCoins = Boolean(user && coins === null);
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
+    if (!user) return;
 
     const userRef = doc(db, "users", user.uid);
 
@@ -43,83 +80,133 @@ export default function MysteryScreen() {
     return unsubscribe;
   }, [user]);
 
-  const boxLabel = useMemo(() => {
-    if (opening) return "Opening...";
-    return "Tap to open";
-  }, [opening]);
+  const selectedIndex = useMemo(() => {
+    const balance = coins ?? 0;
+
+    if (balance >= 1000) return 3;
+    if (balance >= 500) return 2;
+    if (balance >= 250) return 1;
+    return 0;
+  }, [coins]);
 
   const handleOpen = async () => {
     if (opening) return;
 
+    if (!user) {
+      alert("You're not logged in");
+      return;
+    }
+
     try {
       setOpening(true);
 
-      const reward = await openBox();
+      const boxReward = await openBox();
 
       setTimeout(() => {
-        setReward(reward.name);
+        setReward(boxReward.name);
         setHasReward(true);
         setOpening(false);
       }, 900);
     } catch (error: any) {
       setOpening(false);
-      alert(error.message);
+      alert(error?.message ?? "Couldn't open the box");
     }
   };
+
+  const balance = coins ?? 0;
 
   return (
     <View style={styles.page}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.push("/")} hitSlop={10}>
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
-
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Mystery Box</Text>
-          <Text style={styles.balanceText}>
-            {loadingCoins ? "Loading coins..." : `${coins ?? 0} coins`}
+        <View>
+          <Text style={styles.title}>Rewards shop</Text>
+          <Text style={styles.subtitle}>
+            Spend coins to unlock a mystery box.
           </Text>
         </View>
 
-        <View style={{ width: 40 }} />
-      </View>
-
-      <View style={styles.card}>
-        <View style={styles.box}>
-          <View style={styles.boxTop} />
-          <View style={styles.boxBody}>
-            <Text style={styles.boxText}>{boxLabel}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.subtitle}>
-          Spend coins and open a random reward.
-        </Text>
-
-        <Pressable
-          style={[styles.button, opening && styles.buttonDisabled]}
-          onPress={handleOpen}
-        >
-          <Text style={styles.buttonText}>
-            {opening ? "Opening" : "Open box"}
+        <View style={styles.balancePill}>
+          <Text style={styles.balanceLabel}>Balance</Text>
+          <Text style={styles.balanceValue}>
+            {loadingCoins ? "Loading..." : `${balance} coins`}
           </Text>
-        </Pressable>
-
-        {hasReward ? (
-          <View style={styles.rewardCard}>
-            <Text style={styles.rewardLabel}>You got</Text>
-            <Text style={styles.rewardText}>{reward}</Text>
-          </View>
-        ) : null}
+        </View>
       </View>
 
-      <View style={styles.noteCard}>
-        <Text style={styles.noteTitle}>How it works</Text>
-        <Text style={styles.noteText}>
-          Later you can connect this screen to your coins system, so opening a
-          box deducts coins and saves the reward to the gallery.
-        </Text>
+      <View style={styles.grid}>
+        {BOXES.map((box, index) => {
+          const locked = Boolean(box.locked);
+          const selected = index === selectedIndex;
+          const canOpen = !locked && !opening && !loadingCoins;
+
+          return (
+            <View
+              key={box.name}
+              style={[
+                styles.card,
+                {
+                  borderColor: selected ? box.border : colors.border,
+                },
+                selected && styles.cardSelected,
+              ]}
+            >
+              {box.badge ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{box.badge}</Text>
+                </View>
+              ) : null}
+
+              <View style={[styles.iconWrap, { backgroundColor: box.soft }]}>
+                <View style={[styles.cube, { borderColor: box.accent }]}>
+                  <View style={[styles.cubeTop, { borderColor: box.accent }]} />
+                  <View style={[styles.cubeRight, { borderColor: box.accent }]} />
+                </View>
+              </View>
+
+              <Text style={[styles.name, locked && styles.nameLocked]}>
+                {box.name}
+              </Text>
+
+              <Text style={[styles.cost, locked && styles.costLocked]}>
+                {box.coins} coins
+              </Text>
+
+              <Pressable
+                style={[
+                  styles.button,
+                  { backgroundColor: box.button },
+                  locked && styles.buttonLocked,
+                  !canOpen && !locked && styles.buttonDisabled,
+                ]}
+                disabled={locked || !canOpen}
+                onPress={handleOpen}
+              >
+                <Text style={[styles.buttonText, { color: box.buttonText }]}>
+                  {locked ? "Locked" : opening ? "Opening..." : "Open"}
+                </Text>
+              </Pressable>
+            </View>
+          );
+        })}
       </View>
+
+      {hasReward ? (
+        <View style={styles.rewardCard}>
+          <Text style={styles.rewardLabel}>You got</Text>
+          <Text style={styles.rewardText}>{reward}</Text>
+        </View>
+      ) : null}
+
+      <Pressable style={styles.backButton} onPress={() => router.replace("/")}>
+        <Text style={styles.backButtonText}>Back</Text>
+      </Pressable>
+
+      {opening ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.loadingText}>Opening your box...</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -127,97 +214,170 @@ export default function MysteryScreen() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: colors.background,
-    padding: 20,
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   header: {
+    marginBottom: 22,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  backText: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  titleContainer: {
-    alignItems: "center",
+    gap: 12,
   },
   title: {
     fontSize: 30,
-    fontWeight: "800",
-    color: colors.text,
-  },
-  balanceText: {
-    marginTop: 4,
-    fontSize: 20,
-    fontWeight: "600",
-    color: colors.coin,
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: 20,
-    alignItems: "center",
-  },
-  box: {
-    width: 180,
-    height: 180,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderStyle: "dashed",
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-  boxTop: {
-    width: 52,
-    height: 20,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-    marginBottom: 12,
-  },
-  boxBody: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "rgba(255,255,255,0.65)",
-    borderRadius: 999,
-  },
-  boxText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.text,
+    fontWeight: "900",
+    color: "#111827",
+    lineHeight: 34,
+    marginBottom: 6,
   },
   subtitle: {
+    fontSize: 15,
+    color: "#9A9AA8",
+    fontWeight: "600",
+  },
+  balancePill: {
+    minWidth: 110,
+    alignItems: "flex-end",
+    backgroundColor: "#F7F7FC",
+    borderWidth: 1,
+    borderColor: "#ECECF4",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  balanceLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#9A9AA8",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    marginBottom: 3,
+  },
+  balanceValue: {
     fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
-    lineHeight: 21,
-    marginBottom: 16,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  grid: {
+    flexDirection: "column",
+    gap: 12,
+  },
+  card: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E8E8F2",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 14,
+    alignItems: "center",
+    position: "relative",
+  },
+  cardSelected: {
+    borderWidth: 2,
+    shadowColor: "#5D57F2",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  badge: {
+    position: "absolute",
+    top: -10,
+    alignSelf: "center",
+    backgroundColor: "#5D57F2",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    zIndex: 2,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  cube: {
+    width: 18,
+    height: 18,
+    borderWidth: 2,
+    borderRadius: 3,
+    position: "relative",
+    backgroundColor: "transparent",
+  },
+  cubeTop: {
+    position: "absolute",
+    top: -6,
+    left: 2,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderBottomWidth: 0,
+    transform: [{ skewX: "-30deg" }],
+    backgroundColor: "transparent",
+  },
+  cubeRight: {
+    position: "absolute",
+    top: 4,
+    left: 10,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    borderLeftWidth: 0,
+    transform: [{ skewY: "-30deg" }],
+    backgroundColor: "transparent",
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  nameLocked: {
+    color: "#9E9EAE",
+  },
+  cost: {
+    fontSize: 13,
+    color: "#8B8B98",
+    marginBottom: 14,
+    fontWeight: "500",
+  },
+  costLocked: {
+    color: "#C5C5D0",
   },
   button: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 13,
-    borderRadius: 12,
-    minWidth: 140,
+    width: "100%",
+    borderRadius: 10,
+    paddingVertical: 11,
     alignItems: "center",
+  },
+  buttonLocked: {
+    backgroundColor: "#F5F5F8",
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
   },
   rewardCard: {
-    marginTop: 18,
+    marginTop: 16,
     width: "100%",
     borderRadius: 14,
     borderWidth: 1,
@@ -238,23 +398,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.text,
   },
-  noteCard: {
+  backButton: {
     marginTop: 16,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: 18,
+    alignSelf: "flex-start",
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
-  noteTitle: {
+  backButtonText: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.text,
-    marginBottom: 6,
+    color: colors.primary,
   },
-  noteText: {
-    fontSize: 14,
-    lineHeight: 21,
+  loadingRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 13,
     color: colors.textMuted,
+    fontWeight: "600",
   },
 });
