@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   backText: {
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: "600",
     color: colors.primary,
   },
@@ -145,13 +145,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
     color: colors.text,
   },
   balanceText: {
     marginTop: 4,
-    fontSize: 13,
+    fontSize: 20,
     fontWeight: "600",
     color: colors.coin,
   },

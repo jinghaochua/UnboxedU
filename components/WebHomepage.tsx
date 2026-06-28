@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -16,9 +17,7 @@ import {
 
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
-import { auth } from "@/lib/firebase";
-
-
+import { auth, db } from "@/lib/firebase";
 
 const seaturtle = require("../assets/images/seaturtle.png");
 const mantaray = require("../assets/images/mantaray.png");
@@ -94,8 +93,6 @@ const TASKS = [
   },
 ];
 
-const COLLECTION = ["Starter badge", "Study card", "Rare item"];
-
 const STATS = [
   { value: "12k+", label: "students" },
   { value: "840k", label: "tasks done" },
@@ -103,10 +100,18 @@ const STATS = [
   { value: "14", label: "avg streak" },
 ];
 
+type GalleryItem = {
+  id: string;
+  name: string;
+  rarity?: string;
+  count?: number;
+};
+
 export function WebHomepage() {
   const { user, loading } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 1100;
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
 
   const floatAnim = useMemo(() => new Animated.Value(0), []);
   const blinkAnim = useMemo(() => new Animated.Value(0), []);
@@ -156,6 +161,29 @@ export function WebHomepage() {
     blinkLoop.start();
     return () => blinkLoop.stop();
   }, [blinkAnim]);
+
+  useEffect(() => {
+    if (!user) {
+      setGalleryItems([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "users", user.uid, "collections"),
+      orderBy("lastObtained", "desc"),
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<GalleryItem, "id">),
+      }));
+
+      setGalleryItems(items);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const openOpacity = blinkAnim.interpolate({
     inputRange: [0, 0.45, 0.55, 1],
@@ -348,12 +376,26 @@ export function WebHomepage() {
             subtitle="Items you unlock can live here later."
           >
             <View style={styles.galleryCard}>
-              {COLLECTION.map((item) => (
-                <View key={item} style={styles.galleryRow}>
-                  <View style={styles.galleryThumb} />
-                  <Text style={styles.galleryText}>{item}</Text>
-                </View>
-              ))}
+              {galleryItems.length > 0 ? (
+                galleryItems.map((item) => (
+                  <View key={item.id} style={styles.galleryRow}>
+                    <View style={styles.galleryThumb} />
+                    <View style={styles.galleryInfo}>
+                      <Text style={styles.galleryText}>{item.name}</Text>
+                      <Text style={styles.galleryMeta}>
+                        {item.rarity ?? "Reward"}
+                        {typeof item.count === "number"
+                          ? ` • x${item.count}`
+                          : ""}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.galleryEmptyText}>
+                  You haven’t unlocked any rewards yet.
+                </Text>
+              )}
             </View>
           </SectionBlock>
         </ScrollView>
@@ -1151,10 +1193,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.primaryLight,
   },
+  galleryInfo: {
+    flex: 1,
+  },
   galleryText: {
     fontSize: 16,
     fontWeight: "600",
     color: colors.text,
+  },
+  galleryMeta: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  galleryEmptyText: {
+    fontSize: 14,
+    color: colors.textMuted,
   },
 
   dashboardHero: {
