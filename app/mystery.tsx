@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -116,98 +117,106 @@ export default function MysteryScreen() {
   const balance = coins ?? 0;
 
   return (
-    <View style={styles.page}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Rewards shop</Text>
-          <Text style={styles.subtitle}>
-            Spend coins to unlock a mystery box.
-          </Text>
-        </View>
-
-        <View style={styles.balancePill}>
-          <Text style={styles.balanceLabel}>Balance</Text>
-          <Text style={styles.balanceValue}>
-            {loadingCoins ? "Loading..." : `${balance} coins`}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.grid}>
-        {BOXES.map((box, index) => {
-          const locked = Boolean(box.locked);
-          const selected = index === selectedIndex;
-          const canOpen = !locked && !opening && !loadingCoins;
-
-          return (
-            <View
-              key={box.name}
-              style={[
-                styles.card,
-                {
-                  borderColor: selected ? box.border : colors.border,
-                },
-                selected && styles.cardSelected,
-              ]}
+    <ScrollView>
+      <View style={styles.page}>
+        <View style={styles.header}>
+          <View>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => router.replace("/")}
             >
-              {box.badge ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{box.badge}</Text>
-                </View>
-              ) : null}
+              <Text style={styles.backButtonText}>Back</Text>
+            </Pressable>
+            <Text style={styles.title}>Rewards shop</Text>
+            <Text style={styles.subtitle}>
+              Spend coins to unlock a mystery box.
+            </Text>
+          </View>
 
-              <View style={[styles.iconWrap, { backgroundColor: box.soft }]}>
-                <View style={[styles.cube, { borderColor: box.accent }]}>
-                  <View style={[styles.cubeTop, { borderColor: box.accent }]} />
-                  <View style={[styles.cubeRight, { borderColor: box.accent }]} />
-                </View>
-              </View>
+          <View style={styles.balancePill}>
+            <Text style={styles.balanceLabel}>Balance</Text>
+            <Text style={styles.balanceValue}>
+              {loadingCoins ? "Loading..." : `${balance} coins`}
+            </Text>
+          </View>
+        </View>
 
-              <Text style={[styles.name, locked && styles.nameLocked]}>
-                {box.name}
-              </Text>
+        <View style={styles.grid}>
+          {BOXES.map((box, index) => {
+            const locked = Boolean(box.locked);
+            const selected = index === selectedIndex;
+            const canOpen = !locked && !opening && !loadingCoins;
 
-              <Text style={[styles.cost, locked && styles.costLocked]}>
-                {box.coins} coins
-              </Text>
-
-              <Pressable
+            return (
+              <View
+                key={box.name}
                 style={[
-                  styles.button,
-                  { backgroundColor: box.button },
-                  locked && styles.buttonLocked,
-                  !canOpen && !locked && styles.buttonDisabled,
+                  styles.card,
+                  {
+                    borderColor: selected ? box.border : colors.border,
+                  },
+                  selected && styles.cardSelected,
                 ]}
-                disabled={locked || !canOpen}
-                onPress={handleOpen}
               >
-                <Text style={[styles.buttonText, { color: box.buttonText }]}>
-                  {locked ? "Locked" : opening ? "Opening..." : "Open"}
+                {box.badge ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{box.badge}</Text>
+                  </View>
+                ) : null}
+
+                <View style={[styles.iconWrap, { backgroundColor: box.soft }]}>
+                  <View style={[styles.cube, { borderColor: box.accent }]}>
+                    <View
+                      style={[styles.cubeTop, { borderColor: box.accent }]}
+                    />
+                    <View
+                      style={[styles.cubeRight, { borderColor: box.accent }]}
+                    />
+                  </View>
+                </View>
+
+                <Text style={[styles.name, locked && styles.nameLocked]}>
+                  {box.name}
                 </Text>
-              </Pressable>
-            </View>
-          );
-        })}
+
+                <Text style={[styles.cost, locked && styles.costLocked]}>
+                  {box.coins} coins
+                </Text>
+
+                <Pressable
+                  style={[
+                    styles.button,
+                    { backgroundColor: box.button },
+                    locked && styles.buttonLocked,
+                    !canOpen && !locked && styles.buttonDisabled,
+                  ]}
+                  disabled={locked || !canOpen}
+                  onPress={handleOpen}
+                >
+                  <Text style={[styles.buttonText, { color: box.buttonText }]}>
+                    {locked ? "Locked" : opening ? "Opening..." : "Open"}
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+
+        {hasReward ? (
+          <View style={styles.rewardCard}>
+            <Text style={styles.rewardLabel}>You got</Text>
+            <Text style={styles.rewardText}>{reward}</Text>
+          </View>
+        ) : null}
+
+        {opening ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Opening your box...</Text>
+          </View>
+        ) : null}
       </View>
-
-      {hasReward ? (
-        <View style={styles.rewardCard}>
-          <Text style={styles.rewardLabel}>You got</Text>
-          <Text style={styles.rewardText}>{reward}</Text>
-        </View>
-      ) : null}
-
-      <Pressable style={styles.backButton} onPress={() => router.replace("/")}>
-        <Text style={styles.backButtonText}>Back</Text>
-      </Pressable>
-
-      {opening ? (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.loadingText}>Opening your box...</Text>
-        </View>
-      ) : null}
-    </View>
+    </ScrollView>
   );
 }
 

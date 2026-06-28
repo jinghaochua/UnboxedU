@@ -19,7 +19,7 @@ import { auth } from "@/lib/firebase";
 
 export default function RegisterScreen() {
   const { user, loading } = useAuth();
-  const [userName, setUserName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,8 +53,8 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!userName.trim()) {
-      setErrorMessage("Please enter your user name.");
+    if (!fullName.trim()) {
+      setErrorMessage("Please enter your full name.");
       return;
     }
 
@@ -77,7 +77,7 @@ export default function RegisterScreen() {
         email.trim(),
         password,
       );
-      await ensureUserProfile(userCredential.user, userName.trim());
+      await ensureUserProfile(userCredential.user, fullName.trim());
       router.replace("/");
     } catch (error) {
       setErrorMessage(formatAuthError(error));
@@ -107,14 +107,14 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.label}>User name</Text>
+          <Text style={styles.label}>Full name</Text>
           <TextInput
             placeholder="Johnathan"
             placeholderTextColor="#7A7A7A"
             style={[styles.input, errorMessage ? styles.inputError : null]}
-            value={userName}
+            value={fullName}
             onChangeText={(text) => {
-              setUserName(text);
+              setFullName(text);
               if (errorMessage) setErrorMessage(null);
             }}
           />

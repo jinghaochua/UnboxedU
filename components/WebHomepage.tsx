@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,9 +17,8 @@ import {
 
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
-import { auth } from "@/lib/firebase";
-
-
+import { auth, db } from "@/lib/firebase";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 
 const seaturtle = require("../assets/images/seaturtle.png");
 const mantaray = require("../assets/images/mantaray.png");
@@ -104,10 +103,18 @@ const STATS = [
   { value: "14", label: "avg streak" },
 ];
 
+type GalleryItem = {
+  id: string;
+  name: string;
+  rarity?: string;
+  count?: number;
+};
+
 export function WebHomepage() {
   const { user, loading } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 1100;
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
 
   const floatAnim = useMemo(() => new Animated.Value(0), []);
   const blinkAnim = useMemo(() => new Animated.Value(0), []);
@@ -157,6 +164,29 @@ export function WebHomepage() {
     blinkLoop.start();
     return () => blinkLoop.stop();
   }, [blinkAnim]);
+
+  useEffect(() => {
+    if (!user) {
+      setGalleryItems([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "users", user.uid, "collections"),
+      orderBy("lastObtained", "desc"),
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<GalleryItem, "id">),
+      }));
+
+      setGalleryItems(items);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const openOpacity = blinkAnim.interpolate({
     inputRange: [0, 0.45, 0.55, 1],
@@ -211,204 +241,250 @@ export function WebHomepage() {
   }
 
   if (user) {
-  const displayName = (user.email?.split("@")[0] ?? "Jamie")
-    .replace(/[._-]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    const displayName = (user.email?.split("@")[0] ?? "Jamie")
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  const stats = [
-    { label: "Streak", value: "14 days" },
-    { label: "Coins", value: "1,240" },
-    { label: "Tasks today", value: "3 / 5" },
-    { label: "Boxes opened", value: "38" },
-  ];
+    const stats = [
+      { label: "Streak", value: "14 days" },
+      { label: "Coins", value: "1,240" },
+      { label: "Tasks today", value: "3 / 5" },
+      { label: "Boxes opened", value: "38" },
+    ];
 
-  const tasks = [
-    { title: "Finish discrete math problem set", coins: 50, done: true },
-    { title: "Review linear algebra notes", coins: 30, done: true },
-    { title: "Read chapter 4 — ODEs", coins: 40, done: true },
-    { title: "Practice 10 recursion questions", coins: 60, done: false },
-    { title: "Watch Laplace transform lecture", coins: 45, done: false },
-  ];
+    const tasks = [
+      { title: "Finish discrete math problem set", coins: 50, done: true },
+      { title: "Review linear algebra notes", coins: 30, done: true },
+      { title: "Read chapter 4 — ODEs", coins: 40, done: true },
+      { title: "Practice 10 recursion questions", coins: 60, done: false },
+      { title: "Watch Laplace transform lecture", coins: 45, done: false },
+    ];
 
-  return (
-    <View style={styles.loggedInPage}>
-      <View style={styles.loggedInNavWrap}>
-        <View style={[styles.loggedInNav, isWide && styles.loggedInNavWide]}>
-          <Pressable style={styles.logoRow} onPress={() => router.replace("/")}>
-            <Image
-              source={require("../assets/images/unboxedu-logo.png")}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </Pressable>
-
-          <View style={styles.loggedInNavLinks}>
-            <Pressable onPress={() => router.push("/tasks" as never)}>
-              <Text style={styles.loggedInNavLink}>Tasks</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/rewards" as never)}>
-              <Text style={styles.loggedInNavLink}>Rewards</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/leaderboard" as never)}>
-              <Text style={styles.loggedInNavLink}>Leaderboard</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.loggedInNavRight}>
-            <View style={styles.loggedInNavPillGold}>
-              <Text style={styles.loggedInNavPillText}>14</Text>
-            </View>
-
-            <View style={styles.loggedInNavPillPurple}>
-              <Text style={styles.loggedInNavPillText}>1,240</Text>
-            </View>
-
-            <View style={styles.loggedInNavAvatar}>
-              <Text style={styles.loggedInNavAvatarText}>
-                {(displayName[0] ?? "U").toUpperCase()}
-              </Text>
-            </View>
-
+    return (
+      <View style={styles.loggedInPage}>
+        <View style={styles.loggedInNavWrap}>
+          <View style={[styles.loggedInNav, isWide && styles.loggedInNavWide]}>
             <Pressable
-              style={styles.loggedInNavGhost}
-              onPress={async () => {
-                await signOut(auth);
-                router.replace("/login");
-              }}
+              style={styles.logoRow}
+              onPress={() => router.replace("/")}
             >
-              <Text style={styles.loggedInNavGhostText}>Log out</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.loggedInScroll}
-        contentContainerStyle={styles.loggedInScrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.loggedInHero, isWide && styles.loggedInHeroWide]}>
-          <View style={styles.loggedInCopy}>
-            <View style={styles.loggedInHeader}>
-              <View style={styles.loggedInHeaderText}>
-                <Text style={styles.loggedInTitle}>
-                  Welcome back, {displayName}
-                </Text>
-
-                <Text style={styles.loggedInSubtitle}>
-                  You&apos;re 2 tasks away from opening today&apos;s box.
-                </Text>
-              </View>
-
               <Image
-                source={require("../assets/images/mascotgirl.png")}
-                style={styles.loggedInMascot}
+                source={require("../assets/images/unboxedu-logo.png")}
+                style={styles.logoImage}
                 resizeMode="contain"
               />
-            </View>
-          </View>
-        </View>
+            </Pressable>
 
-        <View
-          style={[styles.loggedInStatsGrid, isWide && styles.loggedInStatsGridWide]}
-        >
-          {stats.map((item) => (
-            <View key={item.label} style={styles.loggedInStatCard}>
-              <Text style={styles.loggedInStatLabel}>
-                {item.label.toUpperCase()}
-              </Text>
-              <Text style={styles.loggedInStatValue}>{item.value}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View
-          style={[styles.loggedInMainGrid, isWide && styles.loggedInMainGridWide]}
-        >
-          <View style={styles.loggedInTasksCard}>
-            <View style={styles.loggedInSectionHeader}>
-              <Text style={styles.loggedInSectionTitle}>Today&apos;s tasks</Text>
-
-              <Pressable
-                style={styles.loggedInAddTaskButton}
-                onPress={() => router.push("/tasks" as never)}
-              >
-                <Text style={styles.loggedInAddTaskButtonText}>+ ADD TASK</Text>
+            <View style={styles.loggedInNavLinks}>
+              <Pressable onPress={() => router.push("/tasks" as never)}>
+                <Text style={styles.loggedInNavLink}>Tasks</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push("/mystery" as never)}>
+                <Text style={styles.loggedInNavLink}>Mystery Boxes</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push("/leaderboard" as never)}>
+                <Text style={styles.loggedInNavLink}>Leaderboard</Text>
               </Pressable>
             </View>
 
-            <View style={styles.loggedInTaskList}>
-              {tasks.map((task) => (
-                <Pressable
-                  key={task.title}
-                  style={styles.loggedInTaskRow}
-                  onPress={() => Alert.alert("Task", task.title)}
-                >
-                  <View
-                    style={[
-                      styles.loggedInTaskCheck,
-                      task.done
-                        ? styles.loggedInTaskCheckDone
-                        : styles.loggedInTaskCheckOpen,
-                    ]}
-                  >
-                    {task.done ? (
-                      <Text style={styles.loggedInTaskCheckText}>✓</Text>
-                    ) : null}
-                  </View>
-
-                  <Text
-                    style={[
-                      styles.loggedInTaskText,
-                      task.done && styles.loggedInTaskTextDone,
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {task.title}
-                  </Text>
-
-                  <Text style={styles.loggedInTaskCoin}>+{task.coins}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.loggedInBoxCard}>
-            <Text style={styles.loggedInSectionTitle}>Mystery box</Text>
-            <Text style={styles.loggedInBoxSubtext}>2 more tasks to unlock</Text>
-
-            <Pressable
-              style={styles.loggedInBoxVisual}
-              onPress={() => router.push("/mystery" as never)}
-            >
-              <View style={styles.loggedInBoxIconWrap}>
-                <View style={styles.loggedInBoxLid} />
-                <View style={styles.loggedInBoxBody} />
-                <View style={styles.loggedInBoxLock} />
+            <View style={styles.loggedInNavRight}>
+              <View style={styles.loggedInNavPillGold}>
+                <Text style={styles.loggedInNavPillText}>14</Text>
               </View>
-            </Pressable>
 
-            <View style={styles.loggedInProgressDots}>
-              <View style={styles.loggedInDotOn} />
-              <View style={styles.loggedInDotOn} />
-              <View style={styles.loggedInDotOn} />
-              <View style={styles.loggedInDotOff} />
-              <View style={styles.loggedInDotOff} />
+              <View style={styles.loggedInNavPillPurple}>
+                <Text style={styles.loggedInNavPillText}>coins</Text>
+              </View>
+
+              <View style={styles.loggedInNavAvatar}>
+                <Text style={styles.loggedInNavAvatarText}>
+                  {(displayName[0] ?? "U").toUpperCase()}
+                </Text>
+              </View>
+
+              <Pressable
+                style={styles.loggedInNavGhost}
+                onPress={async () => {
+                  await signOut(auth);
+                  router.replace("/login");
+                }}
+              >
+                <Text style={styles.loggedInNavGhostText}>Log out</Text>
+              </Pressable>
             </View>
-
-            <Text style={styles.loggedInProgressText}>3 of 5 tasks done</Text>
-            <Pressable
-              style={styles.loggedInShopButton}
-              onPress={() => router.push("/mystery" as never)}
-            >
-              <Text style={styles.loggedInShopButtonText}>VIEW REWARDS SHOP</Text>
-            </Pressable>
           </View>
         </View>
-      </ScrollView>
-    </View>
-  );
-}
+
+        <ScrollView
+          style={styles.loggedInScroll}
+          contentContainerStyle={styles.loggedInScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View
+            style={[styles.loggedInHero, isWide && styles.loggedInHeroWide]}
+          >
+            <View style={styles.loggedInCopy}>
+              <View style={styles.loggedInHeader}>
+                <View style={styles.loggedInHeaderText}>
+                  <Text style={styles.loggedInTitle}>
+                    Welcome back, {displayName}
+                  </Text>
+
+                  <Text style={styles.loggedInSubtitle}>
+                    You&apos;re 2 tasks away from opening today&apos;s box.
+                  </Text>
+                </View>
+
+                <Image
+                  source={require("../assets/images/mascotgirl.png")}
+                  style={styles.loggedInMascot}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.loggedInStatsGrid,
+              isWide && styles.loggedInStatsGridWide,
+            ]}
+          >
+            {stats.map((item) => (
+              <View key={item.label} style={styles.loggedInStatCard}>
+                <Text style={styles.loggedInStatLabel}>
+                  {item.label.toUpperCase()}
+                </Text>
+                <Text style={styles.loggedInStatValue}>{item.value}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View
+            style={[
+              styles.loggedInMainGrid,
+              isWide && styles.loggedInMainGridWide,
+            ]}
+          >
+            <View style={styles.loggedInTasksCard}>
+              <View style={styles.loggedInSectionHeader}>
+                <Text style={styles.loggedInSectionTitle}>
+                  Today&apos;s tasks
+                </Text>
+
+                <Pressable
+                  style={styles.loggedInAddTaskButton}
+                  onPress={() => router.push("/tasks" as never)}
+                >
+                  <Text style={styles.loggedInAddTaskButtonText}>
+                    + ADD TASK
+                  </Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.loggedInTaskList}>
+                {tasks.map((task) => (
+                  <Pressable
+                    key={task.title}
+                    style={styles.loggedInTaskRow}
+                    onPress={() => Alert.alert("Task", task.title)}
+                  >
+                    <View
+                      style={[
+                        styles.loggedInTaskCheck,
+                        task.done
+                          ? styles.loggedInTaskCheckDone
+                          : styles.loggedInTaskCheckOpen,
+                      ]}
+                    >
+                      {task.done ? (
+                        <Text style={styles.loggedInTaskCheckText}>✓</Text>
+                      ) : null}
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.loggedInTaskText,
+                        task.done && styles.loggedInTaskTextDone,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {task.title}
+                    </Text>
+
+                    <Text style={styles.loggedInTaskCoin}>+{task.coins}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.loggedInBoxCard}>
+              <Text style={styles.loggedInSectionTitle}>Mystery box</Text>
+              <Text style={styles.loggedInBoxSubtext}>
+                2 more tasks to unlock
+              </Text>
+
+              <Pressable
+                style={styles.loggedInBoxVisual}
+                onPress={() => router.push("/mystery" as never)}
+              >
+                <View style={styles.loggedInBoxIconWrap}>
+                  <View style={styles.loggedInBoxLid} />
+                  <View style={styles.loggedInBoxBody} />
+                  <View style={styles.loggedInBoxLock} />
+                </View>
+              </Pressable>
+
+              <View style={styles.loggedInProgressDots}>
+                <View style={styles.loggedInDotOn} />
+                <View style={styles.loggedInDotOn} />
+                <View style={styles.loggedInDotOn} />
+                <View style={styles.loggedInDotOff} />
+                <View style={styles.loggedInDotOff} />
+              </View>
+
+              <Text style={styles.loggedInProgressText}>3 of 5 tasks done</Text>
+              <Pressable
+                style={styles.loggedInShopButton}
+                onPress={() => router.push("/mystery" as never)}
+              >
+                <Text style={styles.loggedInShopButtonText}>
+                  VIEW REWARDS SHOP
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+          <SectionBlock
+            title="Gallery"
+            subtitle="Items you unlock can live here later."
+          >
+            <View style={styles.galleryCard}>
+              {galleryItems.length > 0 ? (
+                galleryItems.map((item) => (
+                  <View key={item.id} style={styles.galleryRow}>
+                    <View style={styles.galleryThumb} />
+                    <View style={styles.galleryInfo}>
+                      <Text style={styles.galleryText}>{item.name}</Text>
+                      <Text style={styles.galleryMeta}>
+                        {item.rarity ?? "Reward"}
+                        {typeof item.count === "number"
+                          ? ` • x${item.count}`
+                          : ""}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.galleryEmptyText}>
+                  You haven’t unlocked any rewards yet.
+                </Text>
+              )}
+            </View>
+          </SectionBlock>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.page}>
@@ -1179,7 +1255,18 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: colors.textMuted,
   },
-
+  galleryInfo: {
+    flex: 1,
+  },
+  galleryMeta: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  galleryEmptyText: {
+    fontSize: 14,
+    color: colors.textMuted,
+  },
   galleryCard: {
     backgroundColor: "#fff",
     borderWidth: 1,
@@ -1425,375 +1512,374 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-
   loggedInPage: {
-  flex: 1,
-  backgroundColor: "#FAFAFE",
-},
+    flex: 1,
+    backgroundColor: "#FAFAFE",
+  },
 
-loggedInNavWrap: {
-  backgroundColor: "#fff",
-  borderBottomWidth: 1,
-  borderBottomColor: "#E8E8F0",
-},
-loggedInNav: {
-  maxWidth: 1680,
-  width: "100%",
-  alignSelf: "center",
-  paddingHorizontal: 20,
-  paddingVertical: 14,
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 16,
-},
-loggedInNavWide: {
-  paddingHorizontal: 28,
-},
-loggedInNavLinks: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 22,
-  flex: 1,
-  justifyContent: "center",
-},
-loggedInNavLink: {
-  fontSize: 14,
-  fontWeight: "700",
-  color: "#8A8AA3",
-},
-loggedInNavRight: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 8,
-},
-loggedInNavPillGold: {
-  backgroundColor: "#FFF3D9",
-  paddingHorizontal: 12,
-  paddingVertical: 7,
-  borderRadius: 999,
-  minWidth: 58,
-  alignItems: "center",
-},
-loggedInNavPillPurple: {
-  backgroundColor: "#EEF0FF",
-  paddingHorizontal: 12,
-  paddingVertical: 7,
-  borderRadius: 999,
-  minWidth: 70,
-  alignItems: "center",
-},
-loggedInNavPillText: {
-  fontSize: 13,
-  fontWeight: "800",
-  color: "#14142B",
-},
-loggedInNavAvatar: {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
-  backgroundColor: "#5B4FE8",
-  alignItems: "center",
-  justifyContent: "center",
-  marginLeft: 2,
-},
-loggedInNavAvatarText: {
-  color: "#fff",
-  fontSize: 13,
-  fontWeight: "900",
-},
-loggedInNavGhost: {
-  backgroundColor: "#F6F6FB",
-  paddingHorizontal: 14,
-  paddingVertical: 8,
-  borderRadius: 12,
-},
-loggedInNavGhostText: {
-  fontSize: 13,
-  fontWeight: "800",
-  color: "#14142B",
-},
+  loggedInNavWrap: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8F0",
+  },
+  loggedInNav: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  loggedInNavWide: {
+    paddingHorizontal: 28,
+  },
+  loggedInNavLinks: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 22,
+    flex: 1,
+    justifyContent: "center",
+  },
+  loggedInNavLink: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#8A8AA3",
+  },
+  loggedInNavRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  loggedInNavPillGold: {
+    backgroundColor: "#FFF3D9",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    minWidth: 58,
+    alignItems: "center",
+  },
+  loggedInNavPillPurple: {
+    backgroundColor: "#EEF0FF",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    minWidth: 70,
+    alignItems: "center",
+  },
+  loggedInNavPillText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#14142B",
+  },
+  loggedInNavAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#5B4FE8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 2,
+  },
+  loggedInNavAvatarText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  loggedInNavGhost: {
+    backgroundColor: "#F6F6FB",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  loggedInNavGhostText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#14142B",
+  },
 
-loggedInScroll: {
-  flex: 1,
-},
-loggedInScrollContent: {
-  paddingBottom: 28,
-},
+  loggedInScroll: {
+    flex: 1,
+  },
+  loggedInScrollContent: {
+    paddingBottom: 28,
+  },
 
-loggedInHero: {
-  maxWidth: 1680,
-  width: "100%",
-  alignSelf: "center",
-  paddingHorizontal: 20,
-  paddingTop: 30,
-  gap: 18,
-},
-loggedInHeroWide: {
-  flexDirection: "row",
-  alignItems: "stretch",
-  gap: 20,
-  paddingHorizontal: 28,
-},
-loggedInCopy: {
-  flex: 1,
-},
-loggedInHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 20,
-  backgroundColor: "#fff",
-  borderWidth: 1,
-  borderColor: "#E8E8F0",
-  borderRadius: 24,
-  paddingHorizontal: 24,
-  paddingVertical: 20,
-},
-loggedInHeaderText: {
-  flex: 1,
-},
-loggedInTitle: {
-  fontSize: 34,
-  fontWeight: "900",
-  color: "#14142B",
-  lineHeight: 42,
-  letterSpacing: -0.4,
-  marginBottom: 8,
-},
-loggedInSubtitle: {
-  fontSize: 16,
-  lineHeight: 24,
-  color: "#7C7C91",
-  maxWidth: 520,
-},
-loggedInMascot: {
-  width: 170,
-  height: 170,
-},
+  loggedInHero: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    gap: 18,
+  },
+  loggedInHeroWide: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 20,
+    paddingHorizontal: 28,
+  },
+  loggedInCopy: {
+    flex: 1,
+  },
+  loggedInHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E8E8F0",
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  loggedInHeaderText: {
+    flex: 1,
+  },
+  loggedInTitle: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: "#14142B",
+    lineHeight: 42,
+    letterSpacing: -0.4,
+    marginBottom: 8,
+  },
+  loggedInSubtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: "#7C7C91",
+    maxWidth: 520,
+  },
+  loggedInMascot: {
+    width: 170,
+    height: 170,
+  },
 
-loggedInStatsGrid: {
-  maxWidth: 1680,
-  width: "100%",
-  alignSelf: "center",
-  paddingHorizontal: 20,
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: 14,
-},
-loggedInStatsGridWide: {
-  paddingHorizontal: 28,
-},
-loggedInStatCard: {
-  flex: 1,
-  minWidth: 160,
-  backgroundColor: "#F6F4FF",
-  borderRadius: 18,
-  padding: 18,
-},
-loggedInStatLabel: {
-  fontSize: 12,
-  fontWeight: "800",
-  color: "#8A8AA3",
-  letterSpacing: 0.5,
-  marginBottom: 8,
-},
-loggedInStatValue: {
-  fontSize: 24,
-  fontWeight: "900",
-  color: "#14142B",
-},
+  loggedInStatsGrid: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 14,
+  },
+  loggedInStatsGridWide: {
+    paddingHorizontal: 28,
+  },
+  loggedInStatCard: {
+    flex: 1,
+    minWidth: 160,
+    backgroundColor: "#F6F4FF",
+    borderRadius: 18,
+    padding: 18,
+  },
+  loggedInStatLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#8A8AA3",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  loggedInStatValue: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#14142B",
+  },
 
-loggedInMainGrid: {
-  maxWidth: 1680,
-  width: "100%",
-  alignSelf: "center",
-  paddingHorizontal: 20,
-  marginTop: 18,
-  gap: 18,
-},
-loggedInMainGridWide: {
-  flexDirection: "row",
-  alignItems: "stretch",
-  paddingHorizontal: 28,
-},
-loggedInTasksCard: {
-  flex: 1.55,
-  backgroundColor: "#fff",
-  borderWidth: 1,
-  borderColor: "#E8E8F0",
-  borderRadius: 24,
-  padding: 22,
-},
-loggedInBoxCard: {
-  flex: 0.95,
-  backgroundColor: "#fff",
-  borderWidth: 1,
-  borderColor: "#E8E8F0",
-  borderRadius: 24,
-  padding: 22,
-  alignItems: "center",
-},
+  loggedInMainGrid: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    marginTop: 18,
+    gap: 18,
+  },
+  loggedInMainGridWide: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    paddingHorizontal: 28,
+  },
+  loggedInTasksCard: {
+    flex: 1.55,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E8E8F0",
+    borderRadius: 24,
+    padding: 22,
+  },
+  loggedInBoxCard: {
+    flex: 0.95,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E8E8F0",
+    borderRadius: 24,
+    padding: 22,
+    alignItems: "center",
+  },
 
-loggedInSectionHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: 16,
-},
-loggedInSectionTitle: {
-  fontSize: 18,
-  fontWeight: "900",
-  color: "#14142B",
-},
-loggedInAddTaskButton: {
-  backgroundColor: "#5B4FE8",
-  borderRadius: 10,
-  paddingHorizontal: 14,
-  paddingVertical: 8,
-},
-loggedInAddTaskButtonText: {
-  color: "#fff",
-  fontSize: 12,
-  fontWeight: "800",
-},
+  loggedInSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  loggedInSectionTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#14142B",
+  },
+  loggedInAddTaskButton: {
+    backgroundColor: "#5B4FE8",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  loggedInAddTaskButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
+  },
 
-loggedInTaskList: {
-  gap: 0,
-},
-loggedInTaskRow: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 12,
-  paddingVertical: 12,
-  borderBottomWidth: 1,
-  borderBottomColor: "#F2F2F7",
-},
-loggedInTaskCheck: {
-  width: 22,
-  height: 22,
-  borderRadius: 11,
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-},
-loggedInTaskCheckDone: {
-  backgroundColor: "#16A34A",
-},
-loggedInTaskCheckOpen: {
-  borderWidth: 2,
-  borderColor: "#D8D8E4",
-  backgroundColor: "#fff",
-},
-loggedInTaskCheckText: {
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: "900",
-  lineHeight: 14,
-},
-loggedInTaskText: {
-  flex: 1,
-  fontSize: 14,
-  fontWeight: "700",
-  color: "#14142B",
-  lineHeight: 20,
-},
-loggedInTaskTextDone: {
-  color: "#B8B8C5",
-  textDecorationLine: "line-through",
-},
-loggedInTaskCoin: {
-  fontSize: 12,
-  fontWeight: "800",
-  color: "#8A5A00",
-  backgroundColor: "#FFF3D9",
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  borderRadius: 12,
-},
+  loggedInTaskList: {
+    gap: 0,
+  },
+  loggedInTaskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F7",
+  },
+  loggedInTaskCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  loggedInTaskCheckDone: {
+    backgroundColor: "#16A34A",
+  },
+  loggedInTaskCheckOpen: {
+    borderWidth: 2,
+    borderColor: "#D8D8E4",
+    backgroundColor: "#fff",
+  },
+  loggedInTaskCheckText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900",
+    lineHeight: 14,
+  },
+  loggedInTaskText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#14142B",
+    lineHeight: 20,
+  },
+  loggedInTaskTextDone: {
+    color: "#B8B8C5",
+    textDecorationLine: "line-through",
+  },
+  loggedInTaskCoin: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#8A5A00",
+    backgroundColor: "#FFF3D9",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
 
-loggedInBoxSubtext: {
-  fontSize: 12,
-  color: "#7C7C91",
-  fontWeight: "600",
-  alignSelf: "flex-start",
-  marginTop: 4,
-  marginBottom: 16,
-},
-loggedInBoxVisual: {
-  width: 92,
-  height: 92,
-  borderRadius: 24,
-  backgroundColor: "#FFF3D9",
-  alignItems: "center",
-  justifyContent: "center",
-  marginBottom: 10,
-},
-loggedInBoxIconWrap: {
-  width: 92,
-  height: 92,
-  borderRadius: 24,
-  backgroundColor: "#FFF3D9",
-  alignItems: "center",
-  justifyContent: "center",
-  position: "relative",
-},
-loggedInBoxLid: {
-  position: "absolute",
-  top: 20,
-  width: 46,
-  height: 12,
-  borderRadius: 6,
-  backgroundColor: "#F2C46D",
-},
-loggedInBoxBody: {
-  position: "absolute",
-  bottom: 18,
-  width: 52,
-  height: 28,
-  borderRadius: 10,
-  backgroundColor: "#F59E0B",
-},
-loggedInBoxLock: {
-  position: "absolute",
-  width: 16,
-  height: 16,
-  borderRadius: 8,
-  backgroundColor: "#D97706",
-  top: 36,
-},
-loggedInProgressDots: {
-  flexDirection: "row",
-  gap: 6,
-  marginVertical: 12,
-},
-loggedInDotOn: {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-  backgroundColor: "#16A34A",
-},
-loggedInDotOff: {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-  backgroundColor: "#E5E5EB",
-},
-loggedInProgressText: {
-  fontSize: 11,
-  color: "#A2A2AF",
-  fontWeight: "700",
-  marginBottom: 16,
-},
-loggedInShopButton: {
-  width: "100%",
-  backgroundColor: "#F59E0B",
-  borderRadius: 14,
-  paddingVertical: 12,
-  alignItems: "center",
-},
-loggedInShopButtonText: {
-  color: "#fff",
-  fontSize: 13,
-  fontWeight: "800",
-},
+  loggedInBoxSubtext: {
+    fontSize: 12,
+    color: "#7C7C91",
+    fontWeight: "600",
+    alignSelf: "flex-start",
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  loggedInBoxVisual: {
+    width: 92,
+    height: 92,
+    borderRadius: 24,
+    backgroundColor: "#FFF3D9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  loggedInBoxIconWrap: {
+    width: 92,
+    height: 92,
+    borderRadius: 24,
+    backgroundColor: "#FFF3D9",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  loggedInBoxLid: {
+    position: "absolute",
+    top: 20,
+    width: 46,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#F2C46D",
+  },
+  loggedInBoxBody: {
+    position: "absolute",
+    bottom: 18,
+    width: 52,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: "#F59E0B",
+  },
+  loggedInBoxLock: {
+    position: "absolute",
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#D97706",
+    top: 36,
+  },
+  loggedInProgressDots: {
+    flexDirection: "row",
+    gap: 6,
+    marginVertical: 12,
+  },
+  loggedInDotOn: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#16A34A",
+  },
+  loggedInDotOff: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#E5E5EB",
+  },
+  loggedInProgressText: {
+    fontSize: 11,
+    color: "#A2A2AF",
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  loggedInShopButton: {
+    width: "100%",
+    backgroundColor: "#F59E0B",
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  loggedInShopButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+  },
 });
