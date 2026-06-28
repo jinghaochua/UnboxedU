@@ -17,8 +17,13 @@ import {
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
-import Cockatiel from "../assets/images/cockatiel.svg";
 
+
+
+const seaturtle = require("../assets/images/seaturtle.png");
+const mantaray = require("../assets/images/mantaray.png");
+const seaotter = require("../assets/images/seaotter.png");
+const mascotgirl = require("../assets/images/mascotgirl.png");
 const PUFFERFISH_OPEN = require("../assets/images/pufferfish-open.png");
 const PUFFERFISH_CLOSED = require("../assets/images/pufferfish-closed.png");
 
@@ -428,35 +433,17 @@ export function WebHomepage() {
           <View style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
             <View style={styles.heroMascotArea}>
               <View style={styles.cockatielWrapper}>
-                <Animated.View style={cockatielMotionStyle}>
-                  <Cockatiel width={260} height={260} />
-                </Animated.View>
-              </View>
-
-              <View style={styles.pufferfishWrapper}>
-                <Animated.View style={pufferfishMotionStyle}>
-                  <Animated.Image
-                    source={PUFFERFISH_OPEN}
-                    style={[
-                      styles.pufferfishImage,
-                      {
-                        opacity: openOpacity,
-                      },
-                    ]}
-                    resizeMode="contain"
-                  />
-                  <Animated.Image
-                    source={PUFFERFISH_CLOSED}
-                    style={[
-                      StyleSheet.absoluteFill,
-                      styles.pufferfishImage,
-                      {
-                        opacity: closedOpacity,
-                      },
-                    ]}
-                    resizeMode="contain"
-                  />
-                </Animated.View>
+                <Animated.Image
+                  source={seaturtle}
+                  style={[
+                    {
+                      width: 800,
+                      height: 800,
+                    },
+                    cockatielMotionStyle,
+                  ]}
+                  resizeMode="contain"
+                />
               </View>
             </View>
           </View>
@@ -517,12 +504,20 @@ export function WebHomepage() {
           >
             <View style={styles.splitAside}>
               <View style={styles.asideCockatielCard}>
-                <Animated.View style={cockatielMotionStyle}>
-                  <Cockatiel width={220} height={220} />
-                </Animated.View>
+                <Animated.Image
+                  source={seaotter}
+                  style={[
+                    {
+                      width: 280,
+                      height: 280,
+                    },
+                    cockatielMotionStyle,
+                  ]}
+                  resizeMode="contain"
+                />
               </View>
               <Text style={styles.asideCaption}>
-                A little mascot never hurts.
+                Otto reads every guide so you don't have to.
               </Text>
             </View>
 
@@ -562,11 +557,19 @@ export function WebHomepage() {
             </View>
 
             <View style={styles.statsMascotCard}>
-              <Animated.View style={cockatielMotionStyle}>
-                <Cockatiel width={180} height={180} />
-              </Animated.View>
+              <Animated.Image
+                source={mantaray}
+                style={[
+                  {
+                    width: 220,
+                    height: 220,
+                  },
+                  cockatielMotionStyle,
+                ]}
+                resizeMode="contain"
+              />
               <Text style={styles.asideCaption}>
-                A steady streak looks good.
+                Ray is celebrating your streak!
               </Text>
             </View>
           </View>
@@ -885,12 +888,12 @@ const styles = StyleSheet.create({
   },
   heroMascotArea: {
     position: "relative",
-    minHeight: 360,
+    minHeight: 600,
   },
   cockatielWrapper: {
     position: "absolute",
-    left: 0,
-    bottom: 0,
+    left: 10,
+    bottom: -100,
     zIndex: 2,
   },
   pufferfishWrapper: {
