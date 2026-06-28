@@ -18,7 +18,13 @@ import {
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { auth, db } from "@/lib/firebase";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 
 const seaturtle = require("../assets/images/seaturtle.png");
 const mantaray = require("../assets/images/mantaray.png");
@@ -73,29 +79,6 @@ const STEPS = [
   },
 ];
 
-const TASKS = [
-  {
-    title: "Review lecture notes",
-    detail: "Finish before dinner",
-    coins: 15,
-    status: "Today",
-  },
-  {
-    title: "Complete quiz practice",
-    detail: "Try to score above 80%",
-    coins: 25,
-    status: "Urgent",
-  },
-  {
-    title: "Read one chapter",
-    detail: "Focus on the key concepts",
-    coins: 20,
-    status: "This week",
-  },
-];
-
-const COLLECTION = ["Starter badge", "Study card", "Rare item"];
-
 const STATS = [
   { value: "12k+", label: "students" },
   { value: "840k", label: "tasks done" },
@@ -115,6 +98,18 @@ export function WebHomepage() {
   const { width } = useWindowDimensions();
   const isWide = width >= 1100;
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  type Task = {
+    id: string;
+    title: string;
+    coins?: number;
+    done?: boolean;
+    detail?: string;
+    status?: string;
+    createdAt?: any;
+  };
+
+  const [userTasks, setUserTasks] = useState<Task[]>([]);
+  const [userCoins, setUserCoins] = useState<number>(0);
 
   const floatAnim = useMemo(() => new Animated.Value(0), []);
   const blinkAnim = useMemo(() => new Animated.Value(0), []);
@@ -188,6 +183,51 @@ export function WebHomepage() {
     return () => unsubscribe();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      setUserTasks([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "users", user.uid, "tasks"),
+      orderBy("createdAt", "desc"),
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((doc) => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          title: data.title ?? data.name ?? "",
+          coins: data.coins ?? data.coin ?? 0,
+          detail: data.detail ?? data.description ?? "",
+          status: data.status,
+          createdAt: data.createdAt,
+          done: data.status === "completed" || data.done === true,
+        } as Task;
+      });
+
+      setUserTasks(items as Task[]);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setUserCoins(0);
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      setUserCoins(snapshot.exists() ? (snapshot.data()?.coins ?? 0) : 0);
+    });
+
+    return unsubscribe;
+  }, [user]);
+
   const openOpacity = blinkAnim.interpolate({
     inputRange: [0, 0.45, 0.55, 1],
     outputRange: [1, 1, 0, 0],
@@ -246,19 +286,47 @@ export function WebHomepage() {
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
     const stats = [
-      { label: "Streak", value: "14 days" },
-      { label: "Coins", value: "1,240" },
-      { label: "Tasks today", value: "3 / 5" },
-      { label: "Boxes opened", value: "38" },
+      { label: "Streak", value: "-" },
+      { label: "Coins", value: `${userCoins.toLocaleString()}` },
+      { label: "Tasks today", value: "-" },
+      { label: "Boxes opened", value: "-" },
     ];
 
-    const tasks = [
-      { title: "Finish discrete math problem set", coins: 50, done: true },
-      { title: "Review linear algebra notes", coins: 30, done: true },
-      { title: "Read chapter 4 — ODEs", coins: 40, done: true },
-      { title: "Practice 10 recursion questions", coins: 60, done: false },
-      { title: "Watch Laplace transform lecture", coins: 45, done: false },
-    ];
+    const tasks =
+      userTasks && userTasks.length > 0
+        ? userTasks
+        : [
+            {
+              id: "sample-1",
+              title: "Finish discrete math problem set",
+              coins: 50,
+              done: true,
+            },
+            {
+              id: "sample-2",
+              title: "Review linear algebra notes",
+              coins: 30,
+              done: true,
+            },
+            {
+              id: "sample-3",
+              title: "Read chapter 4 — ODEs",
+              coins: 40,
+              done: true,
+            },
+            {
+              id: "sample-4",
+              title: "Practice 10 recursion questions",
+              coins: 60,
+              done: false,
+            },
+            {
+              id: "sample-5",
+              title: "Watch Laplace transform lecture",
+              coins: 45,
+              done: false,
+            },
+          ];
 
     return (
       <View style={styles.loggedInPage}>
@@ -289,11 +357,13 @@ export function WebHomepage() {
 
             <View style={styles.loggedInNavRight}>
               <View style={styles.loggedInNavPillGold}>
-                <Text style={styles.loggedInNavPillText}>14</Text>
+                <Text style={styles.loggedInNavPillText}>xx Day Streak</Text>
               </View>
 
               <View style={styles.loggedInNavPillPurple}>
-                <Text style={styles.loggedInNavPillText}>coins</Text>
+                <Text style={styles.loggedInNavPillText}>
+                  {userCoins.toLocaleString()} Coins
+                </Text>
               </View>
 
               <View style={styles.loggedInNavAvatar}>
@@ -331,7 +401,7 @@ export function WebHomepage() {
                   </Text>
 
                   <Text style={styles.loggedInSubtitle}>
-                    You&apos;re 2 tasks away from opening today&apos;s box.
+                    You&apos;re xx tasks away from opening today&apos;s box.
                   </Text>
                 </View>
 
@@ -369,7 +439,7 @@ export function WebHomepage() {
             <View style={styles.loggedInTasksCard}>
               <View style={styles.loggedInSectionHeader}>
                 <Text style={styles.loggedInSectionTitle}>
-                  Today&apos;s tasks
+                  Recently Added Tasks
                 </Text>
 
                 <Pressable
@@ -377,7 +447,7 @@ export function WebHomepage() {
                   onPress={() => router.push("/tasks" as never)}
                 >
                   <Text style={styles.loggedInAddTaskButtonText}>
-                    + ADD TASK
+                    SHOW ALL TASKS
                   </Text>
                 </Pressable>
               </View>
@@ -385,7 +455,7 @@ export function WebHomepage() {
               <View style={styles.loggedInTaskList}>
                 {tasks.map((task) => (
                   <Pressable
-                    key={task.title}
+                    key={task.id}
                     style={styles.loggedInTaskRow}
                     onPress={() => Alert.alert("Task", task.title)}
                   >
@@ -421,7 +491,7 @@ export function WebHomepage() {
             <View style={styles.loggedInBoxCard}>
               <Text style={styles.loggedInSectionTitle}>Mystery box</Text>
               <Text style={styles.loggedInBoxSubtext}>
-                2 more tasks to unlock
+                xx more tasks to unlock
               </Text>
 
               <Pressable
@@ -434,16 +504,20 @@ export function WebHomepage() {
                   <View style={styles.loggedInBoxLock} />
                 </View>
               </Pressable>
-
+              {/*
               <View style={styles.loggedInProgressDots}>
+                <View style={styles.loggedInDotOn} />
                 <View style={styles.loggedInDotOn} />
                 <View style={styles.loggedInDotOn} />
                 <View style={styles.loggedInDotOn} />
                 <View style={styles.loggedInDotOff} />
                 <View style={styles.loggedInDotOff} />
               </View>
+              */}
 
-              <Text style={styles.loggedInProgressText}>3 of 5 tasks done</Text>
+              <Text style={styles.loggedInProgressText}>
+                - of xx tasks done
+              </Text>
               <Pressable
                 style={styles.loggedInShopButton}
                 onPress={() => router.push("/mystery" as never)}
@@ -1634,6 +1708,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 24,
     paddingVertical: 20,
+    marginBottom: 20,
   },
   loggedInHeaderText: {
     flex: 1,
