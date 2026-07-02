@@ -15,52 +15,31 @@ import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { openBox } from "@/lib/openBox";
 
-const BOXES = [
+const PULL_OPTIONS = [
   {
-    name: "Common",
-    coins: 100,
+    label: "Single pull",
+    price: 50,
+    description: "One surprise school-supplies pull",
     accent: "#5C55E6",
-    soft: "#ECEAFE",
-    border: "#E7E7F5",
     button: "#5C55E6",
     buttonText: "#fff",
   },
   {
-    name: "Rare",
-    coins: 250,
-    accent: "#2D8F2F",
-    soft: "#EAF4D7",
-    border: "#E7E7F5",
+    label: "10x pull",
+    price: 500,
+    description: "Ten pulls for a bigger haul",
+    accent: "#25A34A",
     button: "#25A34A",
     buttonText: "#fff",
-  },
-  {
-    name: "Epic",
-    coins: 500,
-    accent: "#B56B00",
-    soft: "#FBEED7",
-    border: "#5D57F2",
-    button: "#F6A313",
-    buttonText: "#fff",
-    badge: "Almost there",
-  },
-  {
-    name: "Legendary",
-    coins: 1000,
-    accent: "#D6A08B",
-    soft: "#F9EFED",
-    border: "#E7E7F5",
-    button: "#F3F3F6",
-    buttonText: "#C8C8D4",
-    locked: true,
   },
 ];
 
 export default function MysteryScreen() {
   const { user } = useAuth();
   const [hasReward, setHasReward] = useState(false);
-  const [reward, setReward] = useState("");
+  const [rewardText, setRewardText] = useState("");
   const [opening, setOpening] = useState(false);
+  const [openingCount, setOpeningCount] = useState<number | null>(null);
   const [coins, setCoins] = useState<number | null>(null);
 
   const loadingCoins = Boolean(user && coins === null);
@@ -81,16 +60,7 @@ export default function MysteryScreen() {
     return unsubscribe;
   }, [user]);
 
-  const selectedIndex = useMemo(() => {
-    const balance = coins ?? 0;
-
-    if (balance >= 1000) return 3;
-    if (balance >= 500) return 2;
-    if (balance >= 250) return 1;
-    return 0;
-  }, [coins]);
-
-  const handleOpen = async () => {
+  const handleOpen = async (count: number) => {
     if (opening) return;
 
     if (!user) {
@@ -100,36 +70,43 @@ export default function MysteryScreen() {
 
     try {
       setOpening(true);
+      setOpeningCount(count);
 
-      const boxReward = await openBox();
+      const rewards = await openBox(count);
 
       setTimeout(() => {
-        setReward(boxReward.name);
+        setRewardText(
+          count === 1
+            ? rewards[0]?.name ?? "A surprise reward"
+            : rewards.map((reward) => reward.name).join(", "),
+        );
         setHasReward(true);
         setOpening(false);
+        setOpeningCount(null);
       }, 900);
     } catch (error: any) {
       setOpening(false);
-      alert(error?.message ?? "Couldn't open the box");
+      setOpeningCount(null);
+      alert(error?.message ?? "Couldn't open the pull");
     }
   };
 
   const balance = coins ?? 0;
 
   return (
-    <ScrollView>
+    <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.page}>
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerTextWrap}>
             <Pressable
               style={styles.backButton}
               onPress={() => router.replace("/")}
             >
               <Text style={styles.backButtonText}>Back</Text>
             </Pressable>
-            <Text style={styles.title}>Rewards shop</Text>
+            <Text style={styles.title}>School supplies pull</Text>
             <Text style={styles.subtitle}>
-              Spend coins to unlock a mystery box.
+              Grab a surprise school haul with fresh rewards.
             </Text>
           </View>
 
@@ -141,78 +118,63 @@ export default function MysteryScreen() {
           </View>
         </View>
 
-        <View style={styles.grid}>
-          {BOXES.map((box, index) => {
-            const locked = Boolean(box.locked);
-            const selected = index === selectedIndex;
-            const canOpen = !locked && !opening && !loadingCoins;
+        <View style={styles.heroBanner}>
+          <View style={styles.heroBadge}>
+            <Text style={styles.heroBadgeText}>School supplies</Text>
+          </View>
 
-            return (
-              <View
-                key={box.name}
-                style={[
-                  styles.card,
-                  {
-                    borderColor: selected ? box.border : colors.border,
-                  },
-                  selected && styles.cardSelected,
-                ]}
-              >
-                {box.badge ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{box.badge}</Text>
-                  </View>
-                ) : null}
+          <Text style={styles.heroTitle}>Choose your pull style</Text>
+          <Text style={styles.heroSubtitle}>
+            Single pull for 50 coins or 10x for 500 coins.
+          </Text>
 
-                <View style={[styles.iconWrap, { backgroundColor: box.soft }]}>
-                  <View style={[styles.cube, { borderColor: box.accent }]}>
-                    <View
-                      style={[styles.cubeTop, { borderColor: box.accent }]}
-                    />
-                    <View
-                      style={[styles.cubeRight, { borderColor: box.accent }]}
-                    />
-                  </View>
-                </View>
+          <View style={styles.optionStack}>
+            {PULL_OPTIONS.map((option) => {
+              const isBulk = option.price === 500;
+              const canOpen = !opening && !loadingCoins && balance >= option.price;
 
-                <Text style={[styles.name, locked && styles.nameLocked]}>
-                  {box.name}
-                </Text>
-
-                <Text style={[styles.cost, locked && styles.costLocked]}>
-                  {box.coins} coins
-                </Text>
-
+              return (
                 <Pressable
+                  key={option.label}
                   style={[
-                    styles.button,
-                    { backgroundColor: box.button },
-                    locked && styles.buttonLocked,
-                    !canOpen && !locked && styles.buttonDisabled,
+                    styles.optionCard,
+                    { borderColor: option.accent },
+                    !canOpen && styles.optionCardDisabled,
                   ]}
-                  disabled={locked || !canOpen}
-                  onPress={handleOpen}
+                  disabled={!canOpen}
+                  onPress={() => handleOpen(isBulk ? 10 : 1)}
                 >
-                  <Text style={[styles.buttonText, { color: box.buttonText }]}>
-                    {locked ? "Locked" : opening ? "Opening..." : "Open"}
+                  <View style={styles.optionRow}>
+                    <Text style={styles.optionLabel}>{option.label}</Text>
+                    <Text style={styles.optionPrice}>{option.price} coins</Text>
+                  </View>
+                  <Text style={styles.optionDescription}>
+                    {option.description}
+                  </Text>
+                  <Text style={styles.optionAction}>
+                    {opening && openingCount === (isBulk ? 10 : 1)
+                      ? "Opening..."
+                      : isBulk
+                        ? "Open 10 pulls"
+                        : "Open 1 pull"}
                   </Text>
                 </Pressable>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
 
         {hasReward ? (
           <View style={styles.rewardCard}>
-            <Text style={styles.rewardLabel}>You got</Text>
-            <Text style={styles.rewardText}>{reward}</Text>
+            <Text style={styles.rewardLabel}>Latest pull</Text>
+            <Text style={styles.rewardText}>{rewardText}</Text>
           </View>
         ) : null}
 
         {opening ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.loadingText}>Opening your box...</Text>
+            <Text style={styles.loadingText}>Opening your pull...</Text>
           </View>
         ) : null}
       </View>
@@ -221,19 +183,25 @@ export default function MysteryScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+  },
   page: {
     flex: 1,
     backgroundColor: "#fff",
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   header: {
-    marginBottom: 22,
+    marginBottom: 18,
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 12,
+  },
+  headerTextWrap: {
+    flex: 1,
   },
   title: {
     fontSize: 30,
@@ -270,120 +238,79 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#111827",
   },
-  grid: {
-    flexDirection: "column",
-    gap: 12,
-  },
-  card: {
-    width: "100%",
-    backgroundColor: "#fff",
+  heroBanner: {
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: "#F8F7FF",
     borderWidth: 1,
-    borderColor: "#E8E8F2",
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingTop: 18,
-    paddingBottom: 14,
-    alignItems: "center",
-    position: "relative",
+    borderColor: "#EDECFD",
   },
-  cardSelected: {
-    borderWidth: 2,
-    shadowColor: "#5D57F2",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  badge: {
-    position: "absolute",
-    top: -10,
-    alignSelf: "center",
-    backgroundColor: "#5D57F2",
-    paddingHorizontal: 12,
+  heroBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#5C55E6",
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    zIndex: 2,
+    marginBottom: 10,
   },
-  badgeText: {
+  heroBadgeText: {
     color: "#fff",
     fontSize: 11,
     fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  cube: {
-    width: 18,
-    height: 18,
-    borderWidth: 2,
-    borderRadius: 3,
-    position: "relative",
-    backgroundColor: "transparent",
-  },
-  cubeTop: {
-    position: "absolute",
-    top: -6,
-    left: 2,
-    width: 12,
-    height: 12,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    borderBottomWidth: 0,
-    transform: [{ skewX: "-30deg" }],
-    backgroundColor: "transparent",
-  },
-  cubeRight: {
-    position: "absolute",
-    top: 4,
-    left: 10,
-    width: 12,
-    height: 12,
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
-    borderLeftWidth: 0,
-    transform: [{ skewY: "-30deg" }],
-    backgroundColor: "transparent",
-  },
-  name: {
-    fontSize: 16,
+  heroTitle: {
+    fontSize: 22,
     fontWeight: "900",
     color: "#111827",
-    marginBottom: 2,
+    marginBottom: 6,
   },
-  nameLocked: {
-    color: "#9E9EAE",
-  },
-  cost: {
-    fontSize: 13,
-    color: "#8B8B98",
+  heroSubtitle: {
+    fontSize: 14,
+    color: "#6F7287",
+    fontWeight: "600",
     marginBottom: 14,
-    fontWeight: "500",
+    lineHeight: 20,
   },
-  costLocked: {
-    color: "#C5C5D0",
+  optionStack: {
+    gap: 10,
   },
-  button: {
-    width: "100%",
-    borderRadius: 10,
-    paddingVertical: 11,
-    alignItems: "center",
+  optionCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
   },
-  buttonLocked: {
-    backgroundColor: "#F5F5F8",
-  },
-  buttonDisabled: {
+  optionCardDisabled: {
     opacity: 0.7,
   },
-  buttonText: {
+  optionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  optionLabel: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  optionPrice: {
     fontSize: 14,
     fontWeight: "800",
+    color: "#111827",
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: "#8A8DA1",
+    marginBottom: 6,
+  },
+  optionAction: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#5C55E6",
   },
   rewardCard: {
     marginTop: 16,

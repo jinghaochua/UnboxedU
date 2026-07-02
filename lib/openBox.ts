@@ -37,10 +37,11 @@ function getWeightedRandomReward(rewards: Reward[]): Reward {
   return rewards[rewards.length - 1];
 }
 
-export async function openBox(): Promise<Reward> {
+export async function openBox(count = 1): Promise<Reward[]> {
   const user = auth.currentUser;
   if (!user) throw new Error("Not logged in");
 
+  const totalCost = count * 50;
   const userRef = doc(db, "users", user.uid);
 
   await runTransaction(db, async (tx) => {
@@ -51,10 +52,10 @@ export async function openBox(): Promise<Reward> {
     }
 
     const coins = snap.data().coins ?? 0;
-    if (coins < 50) throw new Error("Not enough coins");
+    if (coins < totalCost) throw new Error("Not enough coins");
 
     tx.update(userRef, {
-      coins: increment(-50),
+      coins: increment(-totalCost),
     });
   });
 
@@ -66,21 +67,26 @@ export async function openBox(): Promise<Reward> {
     ...doc.data(),
   })) as Reward[];
 
-  const reward = getWeightedRandomReward(rewards);
+  const pulledRewards: Reward[] = [];
 
-  const itemRef = doc(db, "users", user.uid, "collections", reward.id);
+  for (let index = 0; index < count; index += 1) {
+    const reward = getWeightedRandomReward(rewards);
+    const itemRef = doc(db, "users", user.uid, "collections", reward.id);
 
-  await setDoc(
-    itemRef,
-    {
-      id: reward.id,
-      name: reward.name,
-      rarity: reward.rarity,
-      count: increment(1),
-      lastObtained: new Date(),
-    },
-    { merge: true },
-  );
+    await setDoc(
+      itemRef,
+      {
+        id: reward.id,
+        name: reward.name,
+        rarity: reward.rarity,
+        count: increment(1),
+        lastObtained: new Date(),
+      },
+      { merge: true },
+    );
 
-  return reward;
+    pulledRewards.push(reward);
+  }
+
+  return pulledRewards;
 }
