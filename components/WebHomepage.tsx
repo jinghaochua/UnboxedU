@@ -228,6 +228,8 @@ export function WebHomepage() {
     return unsubscribe;
   }, [user]);
 
+  const galleryPreviewItems = galleryItems.slice(0, 3);
+
   const openOpacity = blinkAnim.interpolate({
     inputRange: [0, 0.45, 0.55, 1],
     outputRange: [1, 1, 0, 0],
@@ -281,7 +283,7 @@ export function WebHomepage() {
   }
 
   if (user) {
-    const displayName = (user.email?.split("@")[0] ?? "Jamie")
+    const displayName = (user.email?.split("@")[0] ?? "UnboxedU User")
       .replace(/[._-]+/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
@@ -446,9 +448,7 @@ export function WebHomepage() {
                   style={styles.loggedInAddTaskButton}
                   onPress={() => router.push("/tasks" as never)}
                 >
-                  <Text style={styles.loggedInAddTaskButtonText}>
-                    SHOW ALL TASKS
-                  </Text>
+                  <Text style={styles.loggedInAddTaskButtonText}>SHOW ALL</Text>
                 </Pressable>
               </View>
 
@@ -504,16 +504,6 @@ export function WebHomepage() {
                   <View style={styles.loggedInBoxLock} />
                 </View>
               </Pressable>
-              {/*
-              <View style={styles.loggedInProgressDots}>
-                <View style={styles.loggedInDotOn} />
-                <View style={styles.loggedInDotOn} />
-                <View style={styles.loggedInDotOn} />
-                <View style={styles.loggedInDotOn} />
-                <View style={styles.loggedInDotOff} />
-                <View style={styles.loggedInDotOff} />
-              </View>
-              */}
 
               <Text style={styles.loggedInProgressText}>
                 - of xx tasks done
@@ -532,9 +522,25 @@ export function WebHomepage() {
             title="Gallery"
             subtitle="Items you unlock can live here later."
           >
+            <View style={styles.gallerySectionHeader}>
+              <Text style={styles.gallerySectionCaption}>
+                {galleryItems.length > 0
+                  ? `${galleryItems.length} unlocked item${
+                      galleryItems.length === 1 ? "" : "s"
+                    }`
+                  : "No unlocked items yet"}
+              </Text>
+              <Pressable
+                style={styles.galleryShowAllButton}
+                onPress={() => router.push("/gallery" as never)}
+              >
+                <Text style={styles.galleryShowAllButtonText}>SHOW ALL</Text>
+              </Pressable>
+            </View>
+
             <View style={styles.galleryCard}>
-              {galleryItems.length > 0 ? (
-                galleryItems.map((item) => (
+              {galleryPreviewItems.length > 0 ? (
+                galleryPreviewItems.map((item) => (
                   <View key={item.id} style={styles.galleryRow}>
                     <View style={styles.galleryThumb} />
                     <View style={styles.galleryInfo}>
@@ -1348,6 +1354,29 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     gap: 12,
+  },
+  gallerySectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 18,
+  },
+  gallerySectionCaption: {
+    fontSize: 14,
+    color: colors.textMuted,
+    fontWeight: "600",
+  },
+  galleryShowAllButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  galleryShowAllButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
   },
   galleryRow: {
     flexDirection: "row",
