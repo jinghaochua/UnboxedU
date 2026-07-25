@@ -453,7 +453,7 @@ export function WebHomepage() {
               </View>
 
               <View style={styles.loggedInTaskList}>
-                {tasks.map((task) => (
+                {tasks.slice(0, 3).map((task) => (
                   <Pressable
                     key={task.id}
                     style={styles.loggedInTaskRow}
