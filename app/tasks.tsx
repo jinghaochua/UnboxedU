@@ -1,6 +1,7 @@
 import { Redirect, router } from "expo-router";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,22 +9,20 @@ import {
   View,
 } from "react-native";
 
+import CreateTasks from "@/components/CreateTasks";
+import { colors } from "@/constants/theme";
+import { useAuth } from "@/hooks/use-auth";
+import { db } from "@/lib/firebase";
 import {
   collection,
   deleteDoc,
   doc,
-  getDocs,
   increment,
   onSnapshot,
   orderBy,
   query,
   updateDoc,
 } from "firebase/firestore";
-
-import { db } from "@/lib/firebase";
-
-import { colors } from "@/constants/theme";
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 
 type Task = {
@@ -41,6 +40,7 @@ export default function TasksScreen() {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -58,29 +58,23 @@ export default function TasksScreen() {
   }, [user]);
 
   useEffect(() => {
-    const loadTasks = async () => {
-      if (!user) return;
+    if (!user) return;
 
-      try {
-        const q = query(
-          collection(db, "users", user.uid, "tasks"),
-          orderBy("createdAt", "desc"),
-        );
+    const q = query(
+      collection(db, "users", user.uid, "tasks"),
+      orderBy("createdAt", "desc"),
+    );
 
-        const snapshot = await getDocs(q);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loadedTasks: Task[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Task, "id">),
+      }));
 
-        const loadedTasks: Task[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Task, "id">),
-        }));
+      setTasks(loadedTasks);
+    });
 
-        setTasks(loadedTasks);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    loadTasks();
+    return () => unsubscribe();
   }, [user]);
 
   const pendingTasks = tasks.filter((task) => task.status === "pending");
@@ -214,7 +208,7 @@ export default function TasksScreen() {
 
           <Pressable
             style={styles.createTaskButton}
-            onPress={() => router.push("/tasks/create")}
+            onPress={() => setIsCreateModalOpen(true)}
           >
             <Text style={styles.createTaskButtonText}>Create task</Text>
           </Pressable>
@@ -280,9 +274,22 @@ export default function TasksScreen() {
         ))}
       </View>
 
-      <Pressable style={styles.footerButton} onPress={() => router.push("/")}>
+      <Pressable style={styles.footerButton} onPress={() => router.replace("/")}>
         <Text style={styles.footerButtonText}>Back to home</Text>
       </Pressable>
+
+      <Modal
+        visible={isCreateModalOpen}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsCreateModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <CreateTasks onClose={() => setIsCreateModalOpen(false)} />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -298,6 +305,9 @@ function CompletedTaskRow({
 
   return (
     <View style={styles.completedCard}>
+      <View style={styles.completedCheckDone}>
+        <Text style={styles.completedCheckText}>✓</Text>
+      </View>
       <Text style={styles.completedTitle}>{task.title}</Text>
       <Pressable
         style={[styles.deleteButton, hovered && styles.deleteButtonHover]}
@@ -333,6 +343,7 @@ function PendingTaskRow({
 
   return (
     <View style={[styles.taskCard, { position: "relative" }]}>
+      <View style={styles.taskCheckOpen} />
       <View style={styles.taskCardContent}>
         <Text style={styles.taskFlag}>Active task</Text>
         <Text style={styles.taskTitle}>{task.title}</Text>
@@ -579,17 +590,45 @@ const styles = StyleSheet.create({
   completedList: {
     gap: 12,
   },
+  taskCheckOpen: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#D8D8E4",
+    backgroundColor: "#fff",
+    flexShrink: 0,
+  },
   completedCard: {
     backgroundColor: colors.card,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  completedCheckDone: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#16A34A",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  completedCheckText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900",
+    lineHeight: 14,
   },
   completedTitle: {
     color: colors.text,
     fontSize: 16,
     fontWeight: "800",
+    flex: 1,
   },
   completedDetail: {
     color: colors.textMuted,
@@ -625,5 +664,23 @@ const styles = StyleSheet.create({
   },
   deleteButtonTextHover: {
     color: "#EF4444",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 480,
+    borderRadius: 24,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
   },
 });

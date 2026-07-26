@@ -294,41 +294,7 @@ export function WebHomepage() {
       { label: "Boxes opened", value: "-" },
     ];
 
-    const tasks =
-      userTasks && userTasks.length > 0
-        ? userTasks
-        : [
-            {
-              id: "sample-1",
-              title: "Finish discrete math problem set",
-              coins: 50,
-              done: true,
-            },
-            {
-              id: "sample-2",
-              title: "Review linear algebra notes",
-              coins: 30,
-              done: true,
-            },
-            {
-              id: "sample-3",
-              title: "Read chapter 4 — ODEs",
-              coins: 40,
-              done: true,
-            },
-            {
-              id: "sample-4",
-              title: "Practice 10 recursion questions",
-              coins: 60,
-              done: false,
-            },
-            {
-              id: "sample-5",
-              title: "Watch Laplace transform lecture",
-              coins: 45,
-              done: false,
-            },
-          ];
+    const tasks = userTasks;
 
     return (
       <View style={styles.loggedInPage}>
@@ -453,38 +419,44 @@ export function WebHomepage() {
               </View>
 
               <View style={styles.loggedInTaskList}>
-                {tasks.map((task) => (
-                  <Pressable
-                    key={task.id}
-                    style={styles.loggedInTaskRow}
-                    onPress={() => Alert.alert("Task", task.title)}
-                  >
-                    <View
-                      style={[
-                        styles.loggedInTaskCheck,
-                        task.done
-                          ? styles.loggedInTaskCheckDone
-                          : styles.loggedInTaskCheckOpen,
-                      ]}
+                {tasks.length > 0 ? (
+                  tasks.map((task) => (
+                    <Pressable
+                      key={task.id}
+                      style={styles.loggedInTaskRow}
+                      onPress={() => Alert.alert("Task", task.title)}
                     >
-                      {task.done ? (
-                        <Text style={styles.loggedInTaskCheckText}>✓</Text>
-                      ) : null}
-                    </View>
+                      <View
+                        style={[
+                          styles.loggedInTaskCheck,
+                          task.done
+                            ? styles.loggedInTaskCheckDone
+                            : styles.loggedInTaskCheckOpen,
+                        ]}
+                      >
+                        {task.done ? (
+                          <Text style={styles.loggedInTaskCheckText}>✓</Text>
+                        ) : null}
+                      </View>
 
-                    <Text
-                      style={[
-                        styles.loggedInTaskText,
-                        task.done && styles.loggedInTaskTextDone,
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {task.title}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.loggedInTaskText,
+                          task.done && styles.loggedInTaskTextDone,
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {task.title}
+                      </Text>
 
-                    <Text style={styles.loggedInTaskCoin}>+{task.coins}</Text>
-                  </Pressable>
-                ))}
+                      <Text style={styles.loggedInTaskCoin}>+{task.coins}</Text>
+                    </Pressable>
+                  ))
+                ) : (
+                  <Text style={styles.loggedInEmptyTaskText}>
+                    No tasks added yet.
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -506,7 +478,7 @@ export function WebHomepage() {
               </Pressable>
 
               <Text style={styles.loggedInProgressText}>
-                - of xx tasks done
+                {tasks.filter((t) => t.done).length} of {tasks.length} tasks done
               </Text>
               <Pressable
                 style={styles.loggedInShopButton}
@@ -1849,6 +1821,11 @@ const styles = StyleSheet.create({
 
   loggedInTaskList: {
     gap: 0,
+  },
+  loggedInEmptyTaskText: {
+    fontSize: 14,
+    color: "#7C7C91",
+    paddingVertical: 12,
   },
   loggedInTaskRow: {
     flexDirection: "row",

@@ -8,11 +8,27 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 const DURATIONS = [15, 30, 45, 60, 90, 120];
 
-export default function CreateTaskScreen() {
+export default function CreateTaskScreen({
+  onClose,
+}: {
+  onClose?: () => void;
+}) {
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState<number | null>(null);
 
   const coins = duration ? Math.min(40, Math.ceil(duration / 3)) : 0;
+
+  const handleClose = () => {
+    setTitle("");
+    setDuration(null);
+    if (onClose) {
+      onClose();
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.push("/tasks" as never);
+    }
+  };
 
   const handleCreate = async () => {
     if (!title.trim()) {
@@ -43,18 +59,17 @@ export default function CreateTaskScreen() {
         createdAt: serverTimestamp(),
       });
 
-      alert("Task created");
+      handleClose();
     } catch (error) {
       console.error(error);
       alert("Failed to create task");
     }
-    router.back();
   };
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>‹ Back</Text>
+      <Pressable style={styles.backButton} onPress={handleClose}>
+        <Text style={styles.backButtonText}>{onClose ? "✕ Close" : "‹ Back"}</Text>
       </Pressable>
       <Text style={styles.heading}>Create Task</Text>
 
@@ -105,9 +120,9 @@ export default function CreateTaskScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: colors.background,
     padding: 20,
+    borderRadius: 24,
   },
   heading: {
     fontSize: 28,
