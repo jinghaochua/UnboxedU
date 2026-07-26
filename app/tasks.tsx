@@ -155,7 +155,8 @@ export default function TasksScreen() {
 
   const handleStartFocusSession = (task: Task) => {
     setActiveTaskId(task.id);
-    setTimeRemaining(task.durationMinutes * 60);
+    setTimeRemaining(task.durationMinutes / 10); // change to task.durationMinutes * 60 for deployment
+    //setTimeRemaining(task.durationMinutes * 60);
     setIsPaused(false);
   };
 
