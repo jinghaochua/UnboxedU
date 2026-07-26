@@ -41,10 +41,10 @@ export default function TasksScreen() {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isPomodoroModalOpen, setIsPomodoroModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
-      setUserCoins(0);
       return;
     }
 
@@ -96,7 +96,7 @@ export default function TasksScreen() {
     pendingTasks.find((task) => task.id === activeTaskId) ?? null;
 
   useEffect(() => {
-    if (!activeTaskId || timeRemaining <= 0 || isPaused) {
+    if (timeRemaining <= 0 || isPaused) {
       return;
     }
 
@@ -111,46 +111,74 @@ export default function TasksScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeTaskId, timeRemaining, isPaused]);
+  }, [timeRemaining, isPaused]);
 
   useEffect(() => {
-    if (!activeTaskId || timeRemaining > 0 || !user) {
+    if (timeRemaining > 0 || !user) {
       return;
     }
 
-    const completeTask = async () => {
-      try {
-        const completedTask = tasks.find((task) => task.id === activeTaskId);
-        const reward = completedTask?.coins ?? 0;
+    const finishTimer = async () => {
+      if (activeTaskId) {
+        try {
+          const completedTask = tasks.find((task) => task.id === activeTaskId);
+          const reward = completedTask?.coins ?? 0;
 
-        await Promise.all([
-          updateDoc(doc(db, "users", user.uid, "tasks", activeTaskId), {
-            status: "completed",
-          }),
-          updateDoc(doc(db, "users", user.uid), {
-            coins: increment(reward),
-          }),
-        ]);
+          await Promise.all([
+            updateDoc(doc(db, "users", user.uid, "tasks", activeTaskId), {
+              status: "completed",
+            }),
+            updateDoc(doc(db, "users", user.uid), {
+              coins: increment(reward),
+            }),
+          ]);
 
-        setTasks((currentTasks) =>
-          currentTasks.map((task) =>
-            task.id === activeTaskId ? { ...task, status: "completed" } : task,
-          ),
-        );
-        setActiveTaskId(null);
-        setTimeRemaining(0);
-        setIsPaused(false);
-      } catch (error) {
-        console.error(error);
+          setTasks((currentTasks) =>
+            currentTasks.map((task) =>
+              task.id === activeTaskId
+                ? { ...task, status: "completed" }
+                : task,
+            ),
+          );
+        } catch (error) {
+          console.error(error);
+        }
       }
+
+      setActiveTaskId(null);
+      setTimeRemaining(0);
+      setIsPaused(false);
     };
 
-    completeTask();
-  }, [activeTaskId, timeRemaining, user]);
+    finishTimer();
+  }, [activeTaskId, timeRemaining, user, tasks]);
 
   const handleStartFocusSession = (task: Task) => {
     setActiveTaskId(task.id);
-    setTimeRemaining(task.durationMinutes / 10); // change to seconds for testing purposes, in production it should be task.durationMinutes * 60
+    setTimeRemaining(task.durationMinutes * 60);
+    setIsPaused(false);
+  };
+
+  const handleStartPomodoroOption = (
+    durationMinutes: number,
+    label: string,
+  ) => {
+    setIsPomodoroModalOpen(false);
+
+    if (label === "Focus") {
+      if (pendingTasks.length === 0) {
+        return;
+      }
+
+      const firstPendingTask = pendingTasks[0];
+      setActiveTaskId(firstPendingTask.id);
+      setTimeRemaining(durationMinutes * 60);
+      setIsPaused(false);
+      return;
+    }
+
+    setActiveTaskId(null);
+    setTimeRemaining(durationMinutes * 60);
     setIsPaused(false);
   };
 
@@ -215,14 +243,25 @@ export default function TasksScreen() {
         </View>
       </View>
 
-      {activeTask && timeRemaining > 0 ? (
+      <Pressable
+        style={styles.pomodoroButton}
+        onPress={() => setIsPomodoroModalOpen(true)}
+      >
+        <Text style={styles.pomodoroButtonText}>Open Pomodoro Timer</Text>
+      </Pressable>
+
+      {timeRemaining > 0 ? (
         <View style={styles.focusTimerCard}>
-          <Text style={styles.focusTimerLabel}>Focus session</Text>
+          <Text style={styles.focusTimerLabel}>
+            {activeTask ? "Focus session" : "Break session"}
+          </Text>
           <Text style={styles.focusTimerValue}>
             {formatTime(timeRemaining)}
           </Text>
           <Text style={styles.focusTimerSubtext}>
-            Working on {activeTask.title}
+            {activeTask
+              ? `Working on ${activeTask.title}`
+              : "Take a moment to recharge"}
           </Text>
 
           <View style={styles.focusTimerActions}>
@@ -230,7 +269,9 @@ export default function TasksScreen() {
               style={styles.secondaryButton}
               onPress={handleTogglePause}
             >
-              <Text style={styles.secondaryButtonText}>{isPaused ? "Resume" : "Pause"}</Text>
+              <Text style={styles.secondaryButtonText}>
+                {isPaused ? "Resume" : "Pause"}
+              </Text>
             </Pressable>
 
             <Pressable
@@ -274,9 +315,68 @@ export default function TasksScreen() {
         ))}
       </View>
 
-      <Pressable style={styles.footerButton} onPress={() => router.replace("/")}>
+      <Pressable
+        style={styles.footerButton}
+        onPress={() => router.replace("/")}
+      >
         <Text style={styles.footerButtonText}>Back to home</Text>
       </Pressable>
+
+      <Modal
+        visible={isPomodoroModalOpen}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsPomodoroModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.pomodoroModalContent}>
+              <Text style={styles.pomodoroModalTitle}>Pomodoro Timer</Text>
+              <Text style={styles.pomodoroModalSubtitle}>
+                Choose a session length to start.
+              </Text>
+
+              {[
+                {
+                  label: "Focus",
+                  duration: 25,
+                  description: "Standard 25 min focus",
+                },
+                {
+                  label: "Short Break",
+                  duration: 5,
+                  description: "5 min short break",
+                },
+                {
+                  label: "Long Break",
+                  duration: 15,
+                  description: "15 min long break",
+                },
+              ].map((option) => (
+                <Pressable
+                  key={option.label}
+                  style={styles.pomodoroOptionButton}
+                  onPress={() =>
+                    handleStartPomodoroOption(option.duration, option.label)
+                  }
+                >
+                  <Text style={styles.pomodoroOptionLabel}>{option.label}</Text>
+                  <Text style={styles.pomodoroOptionDescription}>
+                    {option.description}
+                  </Text>
+                </Pressable>
+              ))}
+
+              <Pressable
+                style={styles.pomodoroCancelButton}
+                onPress={() => setIsPomodoroModalOpen(false)}
+              >
+                <Text style={styles.pomodoroCancelText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={isCreateModalOpen}
@@ -459,6 +559,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
   },
+  pomodoroButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  pomodoroButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
   focusTimerCard: {
     backgroundColor: colors.primaryLight,
     borderRadius: 24,
@@ -489,6 +602,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginTop: 12,
     alignItems: "center",
+  },
+  pomodoroModalContent: {
+    backgroundColor: colors.card,
+    padding: 20,
+    gap: 12,
+  },
+  pomodoroModalTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  pomodoroModalSubtitle: {
+    color: colors.textMuted,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  pomodoroOptionButton: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pomodoroOptionLabel: {
+    color: colors.primaryDark,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  pomodoroOptionDescription: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  pomodoroCancelButton: {
+    marginTop: 4,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  pomodoroCancelText: {
+    color: colors.primaryDark,
+    fontSize: 14,
+    fontWeight: "800",
   },
   taskList: {
     gap: 12,

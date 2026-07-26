@@ -110,6 +110,7 @@ export function WebHomepage() {
 
   const [userTasks, setUserTasks] = useState<Task[]>([]);
   const [userCoins, setUserCoins] = useState<number>(0);
+  const [userStreak, setUserStreak] = useState<number>(0);
 
   const floatAnim = useMemo(() => new Animated.Value(0), []);
   const blinkAnim = useMemo(() => new Animated.Value(0), []);
@@ -223,6 +224,7 @@ export function WebHomepage() {
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       setUserCoins(snapshot.exists() ? (snapshot.data()?.coins ?? 0) : 0);
+      setUserStreak(snapshot.exists() ? (snapshot.data()?.streak ?? 0) : 0);
     });
 
     return unsubscribe;
@@ -287,11 +289,19 @@ export function WebHomepage() {
       .replace(/[._-]+/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
+    const totalRewardQuantity = galleryItems.reduce(
+      (total, item) =>
+        total + (typeof item.count === "number" ? item.count : 0),
+      0,
+    );
+
+    const incompleteTasksCount = userTasks.filter((task) => !task.done).length;
+
     const stats = [
-      { label: "Streak", value: "-" },
+      { label: "Streak", value: `${userStreak}` },
       { label: "Coins", value: `${userCoins.toLocaleString()}` },
-      { label: "Tasks today", value: "-" },
-      { label: "Boxes opened", value: "-" },
+      { label: "Tasks Left", value: `${incompleteTasksCount}` },
+      { label: "Boxes opened", value: `${totalRewardQuantity}` },
     ];
 
     const tasks = userTasks;
@@ -325,7 +335,9 @@ export function WebHomepage() {
 
             <View style={styles.loggedInNavRight}>
               <View style={styles.loggedInNavPillGold}>
-                <Text style={styles.loggedInNavPillText}>xx Day Streak</Text>
+                <Text style={styles.loggedInNavPillText}>
+                  {userStreak} Day{userStreak === 1 ? "" : "s"} Streak
+                </Text>
               </View>
 
               <View style={styles.loggedInNavPillPurple}>
@@ -366,10 +378,6 @@ export function WebHomepage() {
                 <View style={styles.loggedInHeaderText}>
                   <Text style={styles.loggedInTitle}>
                     Welcome back, {displayName}
-                  </Text>
-
-                  <Text style={styles.loggedInSubtitle}>
-                    You&apos;re xx tasks away from opening today&apos;s box.
                   </Text>
                 </View>
 
@@ -462,9 +470,6 @@ export function WebHomepage() {
 
             <View style={styles.loggedInBoxCard}>
               <Text style={styles.loggedInSectionTitle}>Mystery box</Text>
-              <Text style={styles.loggedInBoxSubtext}>
-                xx more tasks to unlock
-              </Text>
 
               <Pressable
                 style={styles.loggedInBoxVisual}
@@ -1807,6 +1812,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     color: "#14142B",
+    marginBottom: 10,
   },
   loggedInAddTaskButton: {
     backgroundColor: "#5B4FE8",
