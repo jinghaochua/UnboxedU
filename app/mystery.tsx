@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -15,22 +15,75 @@ import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { openBox } from "@/lib/openBox";
 
-const PULL_OPTIONS = [
+const PULL_POOLS = [
   {
-    label: "Single pull",
-    price: 50,
-    description: "One surprise school-supplies pull",
+    id: "school-supplies",
+    badge: "School supplies",
+    title: "School supplies pull",
+    subtitle: "Grab a surprise school haul with fresh rewards.",
     accent: "#5C55E6",
-    button: "#5C55E6",
-    buttonText: "#fff",
+    bg: "#F8F7FF",
+    borderColor: "#EDECFD",
+    options: [
+      {
+        label: "Single pull",
+        price: 50,
+        description: "One surprise school-supplies pull",
+        accent: "#5C55E6",
+      },
+      {
+        label: "10x pull",
+        price: 500,
+        description: "Ten pulls for a bigger haul",
+        accent: "#25A34A",
+      },
+    ],
   },
   {
-    label: "10x pull",
-    price: 500,
-    description: "Ten pulls for a bigger haul",
-    accent: "#25A34A",
-    button: "#25A34A",
-    buttonText: "#fff",
+    id: "world-cup-2026",
+    badge: "World Cup 2026",
+    title: "World Cup 2026 pull",
+    subtitle: "Unbox rare 2026 tournament collectibles.",
+    accent: "#0284C7",
+    bg: "#F0F9FF",
+    borderColor: "#E0F2FE",
+    options: [
+      {
+        label: "Single pull",
+        price: 50,
+        description: "One surprise World Cup 2026 pull",
+        accent: "#0284C7",
+      },
+      {
+        label: "10x pull",
+        price: 500,
+        description: "Ten pulls for a bigger haul",
+        accent: "#25A34A",
+      },
+    ],
+  },
+  {
+    id: "labubu",
+    badge: "Labubu",
+    title: "Labubu pull",
+    subtitle: "Unlock rare Labubu figures and blind boxes.",
+    accent: "#EC4899",
+    bg: "#FDF2F8",
+    borderColor: "#FCE7F3",
+    options: [
+      {
+        label: "Single pull",
+        price: 50,
+        description: "One surprise Labubu figure pull",
+        accent: "#EC4899",
+      },
+      {
+        label: "10x pull",
+        price: 500,
+        description: "Ten pulls for a bigger haul",
+        accent: "#25A34A",
+      },
+    ],
   },
 ];
 
@@ -40,6 +93,7 @@ export default function MysteryScreen() {
   const [rewardText, setRewardText] = useState("");
   const [opening, setOpening] = useState(false);
   const [openingCount, setOpeningCount] = useState<number | null>(null);
+  const [activePoolId, setActivePoolId] = useState<string | null>(null);
   const [coins, setCoins] = useState<number | null>(null);
 
   const loadingCoins = Boolean(user && coins === null);
@@ -60,7 +114,7 @@ export default function MysteryScreen() {
     return unsubscribe;
   }, [user]);
 
-  const handleOpen = async (count: number) => {
+  const handleOpen = async (count: number, poolId?: string) => {
     if (opening) return;
 
     if (!user) {
@@ -71,6 +125,7 @@ export default function MysteryScreen() {
     try {
       setOpening(true);
       setOpeningCount(count);
+      if (poolId) setActivePoolId(poolId);
 
       const rewards = await openBox(count);
 
@@ -83,10 +138,12 @@ export default function MysteryScreen() {
         setHasReward(true);
         setOpening(false);
         setOpeningCount(null);
+        setActivePoolId(null);
       }, 900);
     } catch (error: any) {
       setOpening(false);
       setOpeningCount(null);
+      setActivePoolId(null);
       alert(error?.message ?? "Couldn't open the pull");
     }
   };
@@ -104,9 +161,9 @@ export default function MysteryScreen() {
             >
               <Text style={styles.backButtonText}>Back</Text>
             </Pressable>
-            <Text style={styles.title}>School supplies pull</Text>
+            <Text style={styles.title}>Mystery Boxes</Text>
             <Text style={styles.subtitle}>
-              Grab a surprise school haul with fresh rewards.
+              Unbox surprise rewards across three exclusive pools.
             </Text>
           </View>
 
@@ -118,50 +175,72 @@ export default function MysteryScreen() {
           </View>
         </View>
 
-        <View style={styles.heroBanner}>
-          <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>School supplies</Text>
-          </View>
+        <View style={styles.columnsContainer}>
+          {PULL_POOLS.map((pool) => (
+            <View
+              key={pool.id}
+              style={[
+                styles.heroBanner,
+                { backgroundColor: pool.bg, borderColor: pool.borderColor },
+              ]}
+            >
+              <View
+                style={[styles.heroBadge, { backgroundColor: pool.accent }]}
+              >
+                <Text style={styles.heroBadgeText}>{pool.badge}</Text>
+              </View>
 
-          <Text style={styles.heroTitle}>Choose your pull style</Text>
-          <Text style={styles.heroSubtitle}>
-            Single pull for 50 coins or 10x for 500 coins.
-          </Text>
+              <Text style={styles.heroTitle}>{pool.title}</Text>
+              <Text style={styles.heroSubtitle}>{pool.subtitle}</Text>
 
-          <View style={styles.optionStack}>
-            {PULL_OPTIONS.map((option) => {
-              const isBulk = option.price === 500;
-              const canOpen = !opening && !loadingCoins && balance >= option.price;
+              <View style={styles.optionStack}>
+                {pool.options.map((option) => {
+                  const isBulk = option.price === 500;
+                  const canOpen =
+                    !opening && !loadingCoins && balance >= option.price;
+                  const isThisOpening =
+                    opening &&
+                    openingCount === (isBulk ? 10 : 1) &&
+                    activePoolId === pool.id;
 
-              return (
-                <Pressable
-                  key={option.label}
-                  style={[
-                    styles.optionCard,
-                    { borderColor: option.accent },
-                    !canOpen && styles.optionCardDisabled,
-                  ]}
-                  disabled={!canOpen}
-                  onPress={() => handleOpen(isBulk ? 10 : 1)}
-                >
-                  <View style={styles.optionRow}>
-                    <Text style={styles.optionLabel}>{option.label}</Text>
-                    <Text style={styles.optionPrice}>{option.price} coins</Text>
-                  </View>
-                  <Text style={styles.optionDescription}>
-                    {option.description}
-                  </Text>
-                  <Text style={styles.optionAction}>
-                    {opening && openingCount === (isBulk ? 10 : 1)
-                      ? "Opening..."
-                      : isBulk
-                        ? "Open 10 pulls"
-                        : "Open 1 pull"}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                  return (
+                    <Pressable
+                      key={option.label}
+                      style={[
+                        styles.optionCard,
+                        { borderColor: option.accent },
+                        !canOpen && styles.optionCardDisabled,
+                      ]}
+                      disabled={!canOpen}
+                      onPress={() => handleOpen(isBulk ? 10 : 1, pool.id)}
+                    >
+                      <View style={styles.optionRow}>
+                        <Text style={styles.optionLabel}>{option.label}</Text>
+                        <Text style={styles.optionPrice}>
+                          {option.price} coins
+                        </Text>
+                      </View>
+                      <Text style={styles.optionDescription}>
+                        {option.description}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.optionAction,
+                          { color: option.accent },
+                        ]}
+                      >
+                        {isThisOpening
+                          ? "Opening..."
+                          : isBulk
+                            ? "Open 10 pulls"
+                            : "Open 1 pull"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
         </View>
 
         {hasReward ? (
@@ -238,16 +317,20 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#111827",
   },
+  columnsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
   heroBanner: {
+    flex: 1,
+    minWidth: 280,
     borderRadius: 24,
     padding: 18,
-    backgroundColor: "#F8F7FF",
     borderWidth: 1,
-    borderColor: "#EDECFD",
   },
   heroBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#5C55E6",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
@@ -261,17 +344,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
     color: "#111827",
     marginBottom: 6,
   },
   heroSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#6F7287",
     fontWeight: "600",
     marginBottom: 14,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   optionStack: {
     gap: 10,
@@ -310,7 +393,6 @@ const styles = StyleSheet.create({
   optionAction: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#5C55E6",
   },
   rewardCard: {
     marginTop: 16,
@@ -357,3 +439,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
