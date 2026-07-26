@@ -59,6 +59,7 @@ export async function openBox(count = 1, banner?: string): Promise<Reward[]> {
 
     tx.update(userRef, {
       coins: increment(-totalCost),
+      boxesOpened: increment(count),
     });
   });
 

@@ -18,6 +18,7 @@ type LeaderboardUser = {
   id: string;
   username?: string;
   email?: string;
+  boxesOpened?: number;
   coins?: number;
 };
 
@@ -29,7 +30,7 @@ export default function LeaderboardScreen() {
   useEffect(() => {
     const q = query(
       collection(db, "users"),
-      orderBy("coins", "desc"),
+      orderBy("boxesOpened", "desc"),
       limit(20),
     );
 
@@ -76,14 +77,14 @@ export default function LeaderboardScreen() {
           </Pressable>
           <Text style={styles.title}>Leaderboard</Text>
           <Text style={styles.subtitle}>
-            Top students ranked by earned coins.
+            Top students ranked by mystery boxes opened.
           </Text>
         </View>
 
         <View style={styles.badgePill}>
-          <Text style={styles.badgeLabel}>Top Rank</Text>
+          <Text style={styles.badgeLabel}>Top Unboxer</Text>
           <Text style={styles.badgeValue}>
-            {leaderboard.length > 0 ? `#1 ${leaderboard[0].coins ?? 0} coins` : "—"}
+            {leaderboard.length > 0 ? `#1 ${leaderboard[0].boxesOpened ?? 0} boxes` : "—"}
           </Text>
         </View>
       </View>
@@ -95,6 +96,7 @@ export default function LeaderboardScreen() {
             const isCurrentUser = item.id === user.uid;
             const displayName =
               item.username || item.email?.split("@")[0] || "Student";
+            const boxes = item.boxesOpened ?? 0;
 
             return (
               <View
@@ -124,7 +126,7 @@ export default function LeaderboardScreen() {
                     {displayName} {isCurrentUser ? "(You)" : ""}
                   </Text>
                   <Text style={styles.userCoins}>
-                    {item.coins ?? 0} coins
+                    {boxes} {boxes === 1 ? "box opened" : "boxes opened"}
                   </Text>
                 </View>
               </View>
@@ -132,7 +134,7 @@ export default function LeaderboardScreen() {
           })
         ) : (
           <Text style={styles.emptyText}>
-            No students found on the leaderboard yet.
+            No mystery boxes opened yet.
           </Text>
         )}
       </View>
