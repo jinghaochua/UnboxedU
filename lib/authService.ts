@@ -1,8 +1,8 @@
 import { auth, db } from "@/lib/firebase";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  User,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    User,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
@@ -23,6 +23,8 @@ export const ensureUserProfile = async (user: User, fullName?: string) => {
       coins: 0,
       xp: 0,
       level: 1,
+      streak: 0,
+      lastCompletedDate: null,
       createdAt: serverTimestamp(),
     },
     { merge: true },

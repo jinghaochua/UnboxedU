@@ -17,6 +17,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   increment,
   onSnapshot,
   orderBy,
@@ -119,35 +120,71 @@ export default function TasksScreen() {
     }
 
     const finishTimer = async () => {
-      if (activeTaskId) {
-        try {
-          const completedTask = tasks.find((task) => task.id === activeTaskId);
-          const reward = completedTask?.coins ?? 0;
+      const resetFocusState = () => {
+        setActiveTaskId(null);
+        setTimeRemaining(0);
+        setIsPaused(false);
+      };
 
-          await Promise.all([
-            updateDoc(doc(db, "users", user.uid, "tasks", activeTaskId), {
-              status: "completed",
-            }),
-            updateDoc(doc(db, "users", user.uid), {
-              coins: increment(reward),
-            }),
-          ]);
-
-          setTasks((currentTasks) =>
-            currentTasks.map((task) =>
-              task.id === activeTaskId
-                ? { ...task, status: "completed" }
-                : task,
-            ),
-          );
-        } catch (error) {
-          console.error(error);
-        }
+      if (!activeTaskId) {
+        resetFocusState();
+        return;
       }
 
-      setActiveTaskId(null);
-      setTimeRemaining(0);
-      setIsPaused(false);
+      const completedTask = tasks.find((task) => task.id === activeTaskId);
+
+      if (!completedTask || completedTask.status === "completed") {
+        resetFocusState();
+        return;
+      }
+
+      try {
+        const reward = completedTask.coins ?? 0;
+        const userRef = doc(db, "users", user.uid);
+        const userSnapshot = await getDoc(userRef);
+        const userData = userSnapshot.exists() ? userSnapshot.data() : null;
+        const currentStreak =
+          typeof userData?.streak === "number" ? userData.streak : 0;
+        const lastCompletedDate =
+          typeof userData?.lastCompletedDate === "string"
+            ? userData.lastCompletedDate
+            : null;
+        const todayKey = new Date().toLocaleDateString("en-CA");
+
+        let nextStreak = 1;
+
+        if (lastCompletedDate === todayKey) {
+          nextStreak = currentStreak;
+        } else if (lastCompletedDate) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayKey = yesterday.toLocaleDateString("en-CA");
+
+          nextStreak =
+            lastCompletedDate === yesterdayKey ? currentStreak + 1 : 1;
+        }
+
+        await Promise.all([
+          updateDoc(doc(db, "users", user.uid, "tasks", activeTaskId), {
+            status: "completed",
+          }),
+          updateDoc(userRef, {
+            coins: increment(reward),
+            streak: nextStreak,
+            lastCompletedDate: todayKey,
+          }),
+        ]);
+
+        setTasks((currentTasks) =>
+          currentTasks.map((task) =>
+            task.id === activeTaskId ? { ...task, status: "completed" } : task,
+          ),
+        );
+      } catch (error) {
+        console.error(error);
+      }
+
+      resetFocusState();
     };
 
     finishTimer();
