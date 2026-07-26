@@ -3,6 +3,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +22,7 @@ const PULL_POOLS = [
     badge: "School supplies",
     title: "School supplies pull",
     subtitle: "Grab a surprise school haul with fresh rewards.",
+    image: require("../assets/images/school.png"),
     accent: "#5C55E6",
     bg: "#F8F7FF",
     borderColor: "#EDECFD",
@@ -44,6 +46,7 @@ const PULL_POOLS = [
     badge: "World Cup 2026",
     title: "World Cup 2026 pull",
     subtitle: "Unbox rare 2026 tournament collectibles.",
+    image: require("../assets/images/worldcup.png"),
     accent: "#0284C7",
     bg: "#F0F9FF",
     borderColor: "#E0F2FE",
@@ -67,6 +70,7 @@ const PULL_POOLS = [
     badge: "Labubu",
     title: "Labubu pull",
     subtitle: "Unlock rare Labubu figures and blind boxes.",
+    image: require("../assets/images/labubu.png"),
     accent: "#EC4899",
     bg: "#FDF2F8",
     borderColor: "#FCE7F3",
@@ -189,6 +193,12 @@ export default function MysteryScreen() {
               >
                 <Text style={styles.heroBadgeText}>{pool.badge}</Text>
               </View>
+
+              <Image
+                source={pool.image}
+                style={styles.cardImage}
+                resizeMode="contain"
+              />
 
               <Text style={styles.heroTitle}>{pool.title}</Text>
               <Text style={styles.heroSubtitle}>{pool.subtitle}</Text>
@@ -343,6 +353,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
+  cardImage: {
+    width: "100%",
+    height: 400,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
   heroTitle: {
     fontSize: 20,
     fontWeight: "900",
@@ -439,4 +455,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
 
