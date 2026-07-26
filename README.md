@@ -1,181 +1,332 @@
-# UnboxedU
+<div align="center">
 
-## Overview
-UnboxedU is a gamified study productivity mobile application designed to motivate students through rewards and collectible blind boxes. By combining productivity tools with engaging reward mechanics, the app encourages students to build consistent study habits while making learning more enjoyable.
+# 🎁 UnboxedU
 
-Users can complete study tasks to earn coins, which can then be used to open blind boxes containing collectible characters of different rarity levels.
+## STUDY. EARN. UNBOX.
 
----
+A gamified study application that rewards students with coins and collectible mystery boxes for completing study tasks.
 
-## Problem Statement
+**NUS Orbital 2026 — Milestone 3**  
+**Proposed Level of Achievement: Project Gemini**
 
-Many students struggle with:
-- Lack of motivation to study consistently
-- Existing productivity apps feeling repetitive and boring
-- Difficulty maintaining long-term study habits
+[🚀 Try UnboxedU](https://unboxedu.web.app)
 
-UnboxedU aims to solve this problem by introducing gamification elements into task management and study productivity.
+</div>
 
 ---
 
-## Features
+## 📖 About UnboxedU
 
-### Task Manager
-- Create and manage study tasks
-- Track task completion
-- Organize daily productivity goals
+UnboxedU is a gamified productivity application designed to motivate students to develop consistent study habits through a reward-based system.
 
-### Coin Reward System
-- Earn coins after completing tasks
-- Incentivizes productivity and consistency
+Instead of simply completing study tasks, users earn virtual coins that can be spent on mystery boxes containing collectible characters of different rarities.
 
-### Blind Box Opening
-- Spend coins to open mystery blind boxes
-- Randomized collectible rewards with rarity tiers
+By combining productivity with gamification, UnboxedU makes studying more engaging and rewarding.
 
-### Collection Gallery
-- Store unlocked collectibles
-- Track collection progress
-
-### Authentication System
-- User registration and login
-- Persistent user data using Firebase Authentication
+> **Complete Tasks → Earn Coins → Open Boxes → Build Your Collection**
 
 ---
 
-# System Architecture
+## ✨ Features
 
-## Frontend
-- React Native
-- Expo Router
-- TypeScript
+### 📋 Study Task Manager
 
-## Backend
-- Firebase Authentication
-- Firebase Firestore
+- Create, edit, complete and delete study tasks
+- Add study durations and due dates
+- Separate tasks into Pending and Completed sections
+- Synchronise changes with Firebase Firestore in real time
 
-## Optional Backend Extensions
-- Spring Boot REST API
-- Node.js services
+### ⏱️ Focus Session Timer
 
----
+- Start a focus session based on the selected study duration
+- Pause, resume or stop an active timer
+- Automatically mark tasks as completed when the timer ends
+- Award coins after a successful focus session
 
-# Technology Stack
+### 🍅 Pomodoro Study Mode
 
-| Technology | Purpose |
-|------------|---------|
-| React Native | Mobile application development |
-| Expo | React Native framework |
-| Expo Router | Navigation and routing |
-| Firebase Auth | User authentication |
-| Firestore | Cloud database |
-| TypeScript | Type-safe development |
-| Spring Boot | Backend REST API |
-| GitHub | Version control |
-| Postman | API testing |
+- Use structured focus and break intervals
+- Pause, resume or stop active Pomodoro sessions
+- Break longer study sessions into manageable periods
+- Encourage more consistent study habits
 
----
+### 🪙 Coin Reward System
 
-# User Journey
+- Earn virtual coins after completing study sessions
+- Receive coins based on the selected study duration
+- Store coin balances under individual user accounts
+- Preserve balances across different sessions
 
-1. User opens the app
-2. User registers or logs in
-3. User accesses dashboard
-4. User creates and completes tasks
-5. User earns coins
-6. User opens blind boxes
-7. User collects characters in gallery
+### 🎁 Mystery Box System
 
----
+- Spend earned coins to open mystery boxes
+- Receive random collectibles through weighted rarity selection
+- Deduct coins only after a successful purchase
+- Prevent multiple boxes from opening through repeated button presses
 
-# Technical Proof of Concept
+### 🖼️ Collection Gallery
 
-The current prototype includes:
-- Integrated frontend and backend
-- Firebase Authentication
-- User login and registration
-- Firestore database integration
-- Task management interface
-- Reward and collection system prototype
+- View all collectibles obtained by the user
+- Store collectibles permanently in Firestore
+- Preserve duplicate collectibles instead of overwriting them
+- Display rewards according to each authenticated user’s inventory
 
----
+### 🏆 Leaderboard
 
-# Evaluation
+- Compare progress with other users
+- Rank users according to the number of mystery boxes opened
+- Retrieve and update ranking information through Firestore
+- Encourage friendly competition and continued engagement
 
-The project has been tested for:
-- Authentication flow
-- Firestore database connectivity
-- REST API endpoints using Postman
-- Randomized blind box reward generation
-- Persistent user data storage
+### 🏅 Achievement Badges
+
+- Reward users for reaching study milestones
+- Provide additional progression beyond coins and collectibles
+- Encourage users to complete objectives consistently
+
+### 🔐 User Authentication
+
+- Register and log in using Firebase Authentication
+- Maintain authenticated user sessions
+- Store tasks, coins and collectibles separately for each account
 
 ---
 
-# Future Improvements
+## ✅ Milestone 3 Achievements
 
-- Seasonal and limited-edition blind boxes
-- AI-powered study recommendations
-- Leaderboards and achievements
-- Friend system and social sharing
-- Personalized analytics dashboard
-- Study streak tracking
+The following features were completed during Milestone 3:
 
----
+- Pomodoro study mode
+- Leaderboard system
+- Achievement badges
+- Improved collection gallery
+- User interface refinements
+- Testing and optimisation
+- Deployment of the final application
 
-# Installation
-
-## Prerequisites
-- Node.js 20 LTS
-- Expo Go mobile app
-- Git
+Milestone 3 transformed UnboxedU from a functional prototype into a more complete gamified productivity application with improved engagement, stability and usability.
 
 ---
 
-## Clone Repository
+## 🚶 User Journey
 
-```bash
-git clone https://github.com/yourusername/UnboxedU.git
-cd UnboxedU
+```mermaid
+flowchart LR
+    A[Register or Log In] --> B[Create a Study Task]
+    B --> C[Start Focus Session]
+    C --> D[Complete Session]
+    D --> E[Earn Coins]
+    E --> F[Open Mystery Box]
+    F --> G[Receive Collectible]
+    G --> H[View Collection]
+    H --> I[Check Leaderboard]
 ```
 
 ---
 
-## Install Dependencies
+## 🏗️ System Architecture
 
-```bash
-npm install --legacy-peer-deps
+```mermaid
+flowchart TD
+    A[User] --> B[React Native Frontend]
+    B --> C[Firebase Authentication]
+    B --> D[Firebase Firestore]
+    B --> E[Spring Boot APIs]
+
+    D --> F[Users]
+    D --> G[Tasks]
+    D --> H[Coin Balances]
+    D --> I[Inventory and Collectibles]
+    D --> J[Leaderboard Data]
 ```
 
 ---
 
-## Start Development Server
+## 🛠️ Technology Stack
 
-```bash
-npx expo start
-```
-
----
-
-# Team Members
-
-- Chua Jinghao
-- Han Zhong Ding
-
----
-
-# Repository Structure
-
-```text
-app/
-components/
-constants/
-hooks/
-assets/
-scripts/
-```
+| Layer | Technology | Purpose |
+|---|---|---|
+| Frontend | React Native | Application development |
+| Styling | NativeWind | User interface styling |
+| Backend | Spring Boot | Backend APIs |
+| Database | Firebase Firestore | Cloud database and real-time synchronisation |
+| Authentication | Firebase Authentication | Secure user registration and login |
+| Deployment | Expo | Application deployment and testing |
+| Version Control | GitHub | Collaborative source code management |
 
 ---
 
-# License
+## 🔥 Firebase Integration
 
-This project is developed for educational purposes as part of a software engineering project milestone.
+Firebase Authentication and Firestore are used to manage user accounts and application data.
+
+The main data stored includes:
+
+- User accounts
+- Study tasks
+- Task completion status
+- Coin balances
+- Collectibles
+- Duplicate collectible quantities
+- Mystery box progress
+- Leaderboard information
+
+Each user’s data is stored separately under their authenticated account.
+
+---
+
+## 🔄 Core Workflows
+
+### Authentication Workflow
+
+1. The user registers or logs in.
+2. Firebase Authentication verifies the credentials.
+3. The user session is maintained.
+4. User-specific information is retrieved from Firestore.
+
+### Task and Coin Workflow
+
+1. The user creates a study task.
+2. The task is stored in Firestore.
+3. The user starts a focus session.
+4. The timer counts down based on the selected duration.
+5. The completed task is moved to the Completed section.
+6. Coins are awarded to the user.
+7. The updated coin balance is saved in Firestore.
+
+### Mystery Box Workflow
+
+1. The user selects a mystery box.
+2. The required coins are deducted.
+3. A weighted probability algorithm selects a rarity.
+4. A random collectible is selected.
+5. The collectible is stored in Firestore.
+6. The collection gallery updates immediately.
+
+### Leaderboard Workflow
+
+1. User progress is retrieved from Firestore.
+2. Users are ranked by the number of mystery boxes opened.
+3. Updated progress is synchronised with the database.
+4. The latest rankings are displayed on the leaderboard.
+
+---
+
+## 📊 Feature Status
+
+| Feature | Status |
+|---|---|
+| User Authentication | ✅ Completed |
+| Study Task Management | ✅ Completed |
+| Focus Session Timer | ✅ Completed |
+| Coin Reward System | ✅ Completed |
+| Mystery Box System | ✅ Completed |
+| Collection Gallery | ✅ Completed |
+| Firestore Integration | ✅ Completed |
+| Pomodoro Study Mode | ✅ Completed |
+| Leaderboard | ✅ Completed |
+| Achievement Badges | ✅ Completed |
+| User Interface Enhancements | ✅ Completed |
+| Testing and Optimisation | ✅ Completed |
+| Daily Login Rewards | 🟡 Partially Completed |
+
+---
+
+## 🧪 Testing and Evaluation
+
+Manual testing was conducted throughout development to ensure that the core features worked correctly under both normal and edge-case scenarios.
+
+### Functional Testing
+
+The following user flows were successfully tested:
+
+- Registering a new account
+- Logging in with valid credentials
+- Rejecting incorrect login details
+- Creating study tasks
+- Editing existing tasks
+- Deleting tasks
+- Starting focus sessions
+- Pausing and resuming timers
+- Completing focus sessions
+- Awarding coins correctly
+- Opening mystery boxes
+- Preventing purchases with insufficient coins
+- Preserving duplicate collectibles
+- Retaining user information across sessions
+- Logging out and logging back in
+
+### Edge-Case Testing
+
+The application was also tested for:
+
+- Empty task titles
+- Very short study durations
+- Long study durations
+- Editing completed tasks
+- Repeated mystery box button presses
+- Restarting the application after earning rewards
+- Temporary loss of network connection
+
+The completed application supports the full end-to-end journey from task creation to collectible rewards.
+
+---
+
+## ⚠️ Challenges Faced
+
+Several challenges were encountered during development:
+
+- Designing an efficient Firestore database structure
+- Synchronising task completion with coin rewards
+- Balancing mystery box probabilities and coin costs
+- Storing duplicate collectibles without overwriting previous rewards
+- Maintaining user-specific information across sessions
+- Ensuring real-time updates were reflected correctly
+
+These challenges were addressed through iterative testing and improvements to the application’s data model and business logic.
+
+---
+
+## 🔮 Post-Orbital Enhancements
+
+Possible future improvements include:
+
+- Completing the daily login reward and streak system
+- Weekly, monthly and friends-only leaderboards
+- Additional collectible characters
+- Seasonal limited-edition mystery boxes
+- Detailed study analytics
+- Collection completion statistics
+- Configurable Pomodoro intervals
+- Study reminders and notifications
+- Post-session reflections
+- Expanded friend and social features
+- Further performance optimisation
+
+---
+
+## 👥 Team
+
+| Name | Student Number | Programme |
+|---|---|---|
+| Chua Jinghao | A0324625H | Year 1 Computer Engineering |
+| Han Zhong Ding | A0324683Y | Year 1 Computer Engineering |
+
+---
+
+## 🔗 Links
+
+- **Live Application:** https://unboxedu.web.app
+- **GitHub Repository:** https://github.com/jinghaochua/UnboxedU
+
+---
+
+<div align="center">
+
+## Ready to study, earn and unbox?
+
+[**Launch UnboxedU**](https://unboxedu.web.app)
+
+Made for **NUS Orbital 2026**
+
+</div>
