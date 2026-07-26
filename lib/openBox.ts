@@ -1,10 +1,12 @@
 import {
-  collection,
-  doc,
-  getDocs,
-  increment,
-  runTransaction,
-  setDoc,
+    collection,
+    doc,
+    getDocs,
+    increment,
+    query,
+    runTransaction,
+    setDoc,
+    where,
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
@@ -14,6 +16,7 @@ type Reward = {
   name: string;
   rarity: string;
   weight: number;
+  banner?: string;
 };
 
 function getWeightedRandomReward(rewards: Reward[]): Reward {
@@ -37,7 +40,7 @@ function getWeightedRandomReward(rewards: Reward[]): Reward {
   return rewards[rewards.length - 1];
 }
 
-export async function openBox(count = 1): Promise<Reward[]> {
+export async function openBox(count = 1, banner?: string): Promise<Reward[]> {
   const user = auth.currentUser;
   if (!user) throw new Error("Not logged in");
 
@@ -59,8 +62,16 @@ export async function openBox(count = 1): Promise<Reward[]> {
     });
   });
 
-  const rewardsSnap = await getDocs(collection(db, "rewards"));
-  if (rewardsSnap.empty) throw new Error("No rewards configured");
+  const rewardsQuery = banner
+    ? query(collection(db, "rewards"), where("banner", "==", banner))
+    : collection(db, "rewards");
+
+  const rewardsSnap = await getDocs(rewardsQuery);
+  if (rewardsSnap.empty) {
+    throw new Error(
+      banner ? `No rewards configured for ${banner}` : "No rewards configured",
+    );
+  }
 
   const rewards = rewardsSnap.docs.map((doc) => ({
     id: doc.id,

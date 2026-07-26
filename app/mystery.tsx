@@ -16,6 +16,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { openBox } from "@/lib/openBox";
 
+const BANNER_BY_POOL_ID: Record<string, string> = {
+  "school-supplies": "school_supplies",
+  "world-cup-2026": "world_cup",
+  labubu: "labubu",
+};
+
 const PULL_POOLS = [
   {
     id: "school-supplies",
@@ -131,12 +137,15 @@ export default function MysteryScreen() {
       setOpeningCount(count);
       if (poolId) setActivePoolId(poolId);
 
-      const rewards = await openBox(count);
+      const rewards = await openBox(
+        count,
+        poolId ? BANNER_BY_POOL_ID[poolId] : undefined,
+      );
 
       setTimeout(() => {
         setRewardText(
           count === 1
-            ? rewards[0]?.name ?? "A surprise reward"
+            ? (rewards[0]?.name ?? "A surprise reward")
             : rewards.map((reward) => reward.name).join(", "),
         );
         setHasReward(true);
@@ -234,10 +243,7 @@ export default function MysteryScreen() {
                         {option.description}
                       </Text>
                       <Text
-                        style={[
-                          styles.optionAction,
-                          { color: option.accent },
-                        ]}
+                        style={[styles.optionAction, { color: option.accent }]}
                       >
                         {isThisOpening
                           ? "Opening..."
@@ -455,5 +461,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-
-
