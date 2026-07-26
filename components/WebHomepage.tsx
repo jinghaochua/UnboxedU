@@ -420,7 +420,7 @@ export function WebHomepage() {
 
               <View style={styles.loggedInTaskList}>
                 {tasks.length > 0 ? (
-                  tasks.map((task) => (
+                  tasks.slice(0, 3).map((task) => (
                     <Pressable
                       key={task.id}
                       style={styles.loggedInTaskRow}
@@ -478,7 +478,8 @@ export function WebHomepage() {
               </Pressable>
 
               <Text style={styles.loggedInProgressText}>
-                {tasks.filter((t) => t.done).length} of {tasks.length} tasks done
+                {tasks.filter((t) => t.done).length} of {tasks.length} tasks
+                done
               </Text>
               <Pressable
                 style={styles.loggedInShopButton}
