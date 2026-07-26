@@ -225,10 +225,10 @@ Each user’s data is stored separately under their authenticated account.
 | Firestore Integration | ✅ Completed |
 | Pomodoro Study Mode | ✅ Completed |
 | Leaderboard | ✅ Completed |
-| Achievement Badges | ✅ Completed |
 | User Interface Enhancements | ✅ Completed |
 | Testing and Optimisation | ✅ Completed |
-| Daily Login Rewards | 🟡 Partially Completed |
+| Daily Login Rewards | 🟡 To Be Added |
+| More Collectibles and Banners | 🟡 To Be Added |
 
 ---
 
