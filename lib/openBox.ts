@@ -1,12 +1,12 @@
 import {
-    collection,
-    doc,
-    getDocs,
-    increment,
-    query,
-    runTransaction,
-    setDoc,
-    where,
+  collection,
+  doc,
+  getDocs,
+  increment,
+  query,
+  runTransaction,
+  setDoc,
+  where,
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
@@ -60,7 +60,28 @@ export async function openBox(count = 1, banner?: string): Promise<Reward[]> {
     tx.update(userRef, {
       coins: increment(-totalCost),
       boxesOpened: increment(count),
+      xp: increment(10 * count),
     });
+  });
+
+  // Check for level ups
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(userRef);
+    if (!snap.exists()) return;
+
+    const currentXP = snap.data().xp ?? 0;
+    const currentLevel = snap.data().level ?? 1;
+    const XP_PER_LEVEL = 30;
+
+    const levelsGained = Math.floor(currentXP / XP_PER_LEVEL);
+
+    if (levelsGained > 0) {
+      const remainingXP = currentXP % XP_PER_LEVEL;
+      tx.update(userRef, {
+        level: currentLevel + levelsGained,
+        xp: remainingXP,
+      });
+    }
   });
 
   const rewardsQuery = banner

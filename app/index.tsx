@@ -42,6 +42,13 @@ export default function HomeScreen() {
           <Text style={styles.buttonText}>Tasks</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/profile" as never)}
+        >
+          <Text style={styles.buttonText}>Profile</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.button} onPress={() => signOut(auth)}>
           <Text style={styles.buttonText}>Log out</Text>
         </TouchableOpacity>
