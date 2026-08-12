@@ -3,6 +3,7 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,7 @@ import {
 } from "react-native";
 
 import { colors } from "@/constants/theme";
+import { rewardImages } from "@/constants/rewardImages";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 
@@ -29,11 +31,13 @@ export default function GalleryScreen() {
 
   useEffect(() => {
     if (!user) {
-      setItems([]);
       return;
     }
 
-    let userItemsMap: Record<string, { name: string; rarity?: string; count?: number }> = {};
+    let userItemsMap: Record<
+      string,
+      { name: string; rarity?: string; count?: number }
+    > = {};
     let rewardsList: { id: string; name: string; rarity?: string }[] = [];
 
     const combineRewards = () => {
@@ -76,7 +80,10 @@ export default function GalleryScreen() {
         orderBy("lastObtained", "desc"),
       ),
       (snapshot) => {
-        const userMap: Record<string, { name: string; rarity?: string; count?: number }> = {};
+        const userMap: Record<
+          string,
+          { name: string; rarity?: string; count?: number }
+        > = {};
         snapshot.docs.forEach((doc) => {
           userMap[doc.id] = doc.data() as any;
         });
@@ -180,9 +187,20 @@ export default function GalleryScreen() {
               key={item.id}
               style={[styles.row, !item.unlocked && styles.lockedRow]}
             >
-              <View
-                style={[styles.thumb, !item.unlocked && styles.lockedThumb]}
-              />
+              <View style={styles.thumb}>
+                {rewardImages[item.id] ? (
+                  <Image
+                    source={rewardImages[item.id]}
+                    style={[
+                      styles.rewardImage,
+                      !item.unlocked && styles.lockedImage,
+                    ]}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.rewardImageFallback} />
+                )}
+              </View>
               <View style={styles.content}>
                 <Text
                   style={[
@@ -333,15 +351,24 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   lockedRow: {
-    opacity: 0.65,
+    backgroundColor: "#FAFAFC",
   },
   thumb: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.primaryLight,
+    width: 76,
+    height: 76,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#F5F2FF",
   },
-  lockedThumb: {
+  rewardImage: {
+    width: "100%",
+    height: "100%",
+  },
+  lockedImage: {
+    opacity: 0.28,
+  },
+  rewardImageFallback: {
+    flex: 1,
     backgroundColor: "#E2E8F0",
   },
   content: {
