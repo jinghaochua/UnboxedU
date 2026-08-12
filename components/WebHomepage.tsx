@@ -380,11 +380,17 @@ export function WebHomepage() {
               ) : null}
 
               {!isCompact ? (
-                <View style={styles.loggedInNavAvatar}>
+                <Pressable
+                  onPress={() => router.push("/profile" as never)}
+                  style={({ pressed }) => [
+                    styles.loggedInNavAvatar,
+                    { opacity: pressed ? 0.7 : 1 } // Simulates activeOpacity={0.7}
+                  ]}
+                >
                   <Text style={styles.loggedInNavAvatarText}>
                     {(displayName[0] ?? "U").toUpperCase()}
                   </Text>
-                </View>
+                </Pressable>
               ) : null}
 
               <Pressable

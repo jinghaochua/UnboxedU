@@ -1,12 +1,12 @@
 import {
-    collection,
-    doc,
-    getDocs,
-    increment,
-    query,
-    runTransaction,
-    setDoc,
-    where,
+  collection,
+  doc,
+  getDocs,
+  increment,
+  query,
+  runTransaction,
+  setDoc,
+  where,
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
@@ -60,6 +60,7 @@ export async function openBox(count = 1, banner?: string): Promise<Reward[]> {
     tx.update(userRef, {
       coins: increment(-totalCost),
       boxesOpened: increment(count),
+      xp: increment(10 * count),
     });
   });
 
