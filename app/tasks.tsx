@@ -1,11 +1,13 @@
 import { Redirect, router } from "expo-router";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -36,13 +38,20 @@ type Task = {
 
 export default function TasksScreen() {
   const { user, loading } = useAuth();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 1100;
+  const isCompact = width < 680;
+  const isSmallNav = width < 560;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [userCoins, setUserCoins] = useState(0);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [sessionDuration, setSessionDuration] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isPomodoroModalOpen, setIsPomodoroModalOpen] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -93,6 +102,10 @@ export default function TasksScreen() {
     }
   }
 
+  function confirmDeleteTask(id: string) {
+    setTaskToDelete(id);
+  }
+
   const activeTask =
     pendingTasks.find((task) => task.id === activeTaskId) ?? null;
 
@@ -123,6 +136,7 @@ export default function TasksScreen() {
       const resetFocusState = () => {
         setActiveTaskId(null);
         setTimeRemaining(0);
+        setSessionDuration(0);
         setIsPaused(false);
       };
 
@@ -191,9 +205,11 @@ export default function TasksScreen() {
   }, [activeTaskId, timeRemaining, user, tasks]);
 
   const handleStartFocusSession = (task: Task) => {
+    const duration = task.durationMinutes * 60;
+
     setActiveTaskId(task.id);
-    setTimeRemaining(task.durationMinutes / 10); // change to task.durationMinutes * 60 for deployment
-    //setTimeRemaining(task.durationMinutes * 60);
+    setTimeRemaining(duration);
+    setSessionDuration(duration);
     setIsPaused(false);
   };
 
@@ -201,28 +217,31 @@ export default function TasksScreen() {
     durationMinutes: number,
     label: string,
   ) => {
-    setIsPomodoroModalOpen(false);
-
     if (label === "Focus") {
       if (pendingTasks.length === 0) {
         return;
       }
 
       const firstPendingTask = pendingTasks[0];
+      setIsPomodoroModalOpen(false);
       setActiveTaskId(firstPendingTask.id);
       setTimeRemaining(durationMinutes * 60);
+      setSessionDuration(durationMinutes * 60);
       setIsPaused(false);
       return;
     }
 
+    setIsPomodoroModalOpen(false);
     setActiveTaskId(null);
     setTimeRemaining(durationMinutes * 60);
+    setSessionDuration(durationMinutes * 60);
     setIsPaused(false);
   };
 
   const handleStopFocusSession = () => {
     setActiveTaskId(null);
     setTimeRemaining(0);
+    setSessionDuration(0);
     setIsPaused(false);
   };
 
@@ -239,6 +258,10 @@ export default function TasksScreen() {
     return `${mins}:${secs}`;
   };
 
+  const timerProgress = sessionDuration
+    ? Math.max(0, (timeRemaining / sessionDuration) * 100)
+    : 0;
+
   if (loading) {
     return (
       <View style={styles.loading}>
@@ -252,23 +275,67 @@ export default function TasksScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
+    <View style={styles.page}>
+      <View style={styles.navWrap}>
+        <View style={[styles.nav, isWide && styles.navWide]}>
+          <Pressable onPress={() => router.replace("/")}>
+            <Image
+              source={require("../assets/images/unboxedu-logo.png")}
+              style={[styles.logo, isSmallNav && styles.logoCompact]}
+              resizeMode="contain"
+            />
+          </Pressable>
+
+          {isWide ? (
+            <View style={styles.navLinks}>
+              <View style={styles.activeNavLink}>
+                <Text style={styles.activeNavLinkText}>Tasks</Text>
+              </View>
+              <Pressable onPress={() => router.push("/mystery" as never)}>
+                <Text style={styles.navLink}>Mystery Boxes</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push("/leaderboard" as never)}>
+                <Text style={styles.navLink}>Leaderboard</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.navSpacer} />
+          )}
+
+          <Pressable style={styles.homeButton} onPress={() => router.replace("/")}>
+            <Text style={styles.homeButtonText}>Back to home</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+      <View style={[styles.header, isCompact && styles.headerCompact]}>
         <View style={styles.headerCopy}>
           <Text style={styles.eyebrow}>Tasks</Text>
           <Text style={styles.title}>What you need to finish</Text>
           <Text style={styles.subtitle}>
             Keep your active tasks visible and move through the rest one by one.
           </Text>
+
+          <View style={styles.summaryRow}>
+            <View style={styles.openSummary}>
+              <Text style={styles.summaryValue}>{pendingTasks.length}</Text>
+              <Text style={styles.summaryLabel}>active</Text>
+            </View>
+            <View style={styles.doneSummary}>
+              <Text style={styles.summaryValue}>{completedTasks.length}</Text>
+              <Text style={styles.summaryLabel}>completed</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.headerActions}>
+        <View style={[styles.headerActions, isCompact && styles.headerActionsCompact]}>
           <View style={styles.coinPill}>
-            <Text style={styles.coinValue}>{userCoins}</Text>
+            <Text style={styles.coinValue}>{userCoins.toLocaleString()}</Text>
             <Text style={styles.coinLabel}>coins</Text>
           </View>
 
@@ -290,9 +357,14 @@ export default function TasksScreen() {
 
       {timeRemaining > 0 ? (
         <View style={styles.focusTimerCard}>
-          <Text style={styles.focusTimerLabel}>
-            {activeTask ? "Focus session" : "Break session"}
-          </Text>
+          <View style={styles.focusTimerTopRow}>
+            <Text style={styles.focusTimerLabel}>
+              {activeTask ? "Focus session" : "Break session"}
+            </Text>
+            <Text style={styles.focusTimerStatus}>
+              {isPaused ? "Paused" : "In progress"}
+            </Text>
+          </View>
           <Text style={styles.focusTimerValue}>
             {formatTime(timeRemaining)}
           </Text>
@@ -301,6 +373,15 @@ export default function TasksScreen() {
               ? `Working on ${activeTask.title}`
               : "Take a moment to recharge"}
           </Text>
+
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${timerProgress}%` as `${number}%` },
+              ]}
+            />
+          </View>
 
           <View style={styles.focusTimerActions}>
             <Pressable
@@ -328,30 +409,62 @@ export default function TasksScreen() {
       </View>
 
       <View style={styles.taskList}>
-        {pendingTasks.map((task) => (
-          <PendingTaskRow
-            key={task.id}
-            task={task}
-            onDelete={handleDeleteTask}
-            onStart={() => handleStartFocusSession(task)}
-          />
-        ))}
+        {pendingTasks.length > 0 ? (
+          pendingTasks.map((task) => (
+            <PendingTaskRow
+              key={task.id}
+              task={task}
+              isActive={task.id === activeTaskId}
+              isCompact={isCompact}
+              onDelete={confirmDeleteTask}
+              onStart={() => handleStartFocusSession(task)}
+            />
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No active tasks</Text>
+            <Text style={styles.emptyText}>
+              Add your next study task and start earning coins.
+            </Text>
+            <Pressable
+              style={styles.emptyButton}
+              onPress={() => setIsCreateModalOpen(true)}
+            >
+              <Text style={styles.emptyButtonText}>Create a task</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
 
-      <View style={styles.sectionHeader}>
+      <Pressable
+        style={styles.sectionHeader}
+        onPress={() => setShowCompleted((current) => !current)}
+      >
         <Text style={styles.sectionTitle}>Completed tasks</Text>
-        <Text style={styles.sectionCount}>{completedTasks.length} done</Text>
-      </View>
+        <Text style={styles.sectionCount}>
+          {completedTasks.length} done · {showCompleted ? "Hide" : "Show"}
+        </Text>
+      </Pressable>
 
-      <View style={styles.completedList}>
-        {completedTasks.map((task) => (
-          <CompletedTaskRow
-            key={task.id}
-            task={task}
-            onDelete={handleDeleteTask}
-          />
-        ))}
-      </View>
+      {showCompleted ? (
+        <View style={styles.completedList}>
+          {completedTasks.length > 0 ? (
+            completedTasks.map((task) => (
+              <CompletedTaskRow
+                key={task.id}
+                task={task}
+                onDelete={confirmDeleteTask}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyStateSmall}>
+              <Text style={styles.emptyText}>
+                Completed tasks will appear here.
+              </Text>
+            </View>
+          )}
+        </View>
+      ) : null}
 
       <Pressable
         style={styles.footerButton}
@@ -393,14 +506,24 @@ export default function TasksScreen() {
               ].map((option) => (
                 <Pressable
                   key={option.label}
-                  style={styles.pomodoroOptionButton}
+                  style={[
+                    styles.pomodoroOptionButton,
+                    option.label === "Focus" &&
+                      pendingTasks.length === 0 &&
+                      styles.pomodoroOptionDisabled,
+                  ]}
+                  disabled={
+                    option.label === "Focus" && pendingTasks.length === 0
+                  }
                   onPress={() =>
                     handleStartPomodoroOption(option.duration, option.label)
                   }
                 >
                   <Text style={styles.pomodoroOptionLabel}>{option.label}</Text>
                   <Text style={styles.pomodoroOptionDescription}>
-                    {option.description}
+                    {option.label === "Focus" && pendingTasks.length === 0
+                      ? "Create an active task first"
+                      : option.description}
                   </Text>
                 </Pressable>
               ))}
@@ -428,7 +551,44 @@ export default function TasksScreen() {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+
+      <Modal
+        visible={taskToDelete !== null}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setTaskToDelete(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.deleteModalCard}>
+            <Text style={styles.deleteModalTitle}>Delete task?</Text>
+            <Text style={styles.deleteModalText}>
+              This task will be removed permanently.
+            </Text>
+
+            <View style={styles.deleteModalActions}>
+              <Pressable
+                style={styles.deleteCancelButton}
+                onPress={() => setTaskToDelete(null)}
+              >
+                <Text style={styles.deleteCancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.deleteConfirmButton}
+                onPress={() => {
+                  if (taskToDelete) {
+                    handleDeleteTask(taskToDelete);
+                  }
+                  setTaskToDelete(null);
+                }}
+              >
+                <Text style={styles.deleteConfirmButtonText}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -470,27 +630,51 @@ function CompletedTaskRow({
 
 function PendingTaskRow({
   task,
+  isActive,
+  isCompact,
   onDelete,
   onStart,
 }: {
   task: { id: string; title: string; durationMinutes: number; coins: number };
+  isActive: boolean;
+  isCompact: boolean;
   onDelete: (id: string) => void;
   onStart: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <View style={[styles.taskCard, { position: "relative" }]}>
+    <View
+      style={[
+        styles.taskCard,
+        isActive && styles.activeTaskCard,
+        isCompact && styles.taskCardCompact,
+      ]}
+    >
       <View style={styles.taskCheckOpen} />
       <View style={styles.taskCardContent}>
-        <Text style={styles.taskFlag}>Active task</Text>
+        <Text style={styles.taskFlag}>
+          {isActive ? "Focus in progress" : "Active task"}
+        </Text>
         <Text style={styles.taskTitle}>{task.title}</Text>
-        <Text style={styles.taskMeta}>{task.durationMinutes} min</Text>
-        <Text style={styles.taskReward}>+{task.coins} coins</Text>
+        <View style={styles.taskDetails}>
+          <Text style={styles.taskMeta}>{task.durationMinutes} min</Text>
+          <Text style={styles.taskReward}>+{task.coins} coins</Text>
+        </View>
       </View>
 
-      <Pressable style={styles.taskActionButton} onPress={onStart}>
-        <Text style={styles.taskActionButtonText}>Start Focus Session</Text>
+      <Pressable
+        style={[
+          styles.taskActionButton,
+          isCompact && styles.taskActionButtonCompact,
+          isActive && styles.taskActionButtonActive,
+        ]}
+        disabled={isActive}
+        onPress={onStart}
+      >
+        <Text style={styles.taskActionButtonText}>
+          {isActive ? "Focusing" : "Start focus"}
+        </Text>
       </Pressable>
 
       <Pressable
@@ -515,24 +699,103 @@ function PendingTaskRow({
 }
 
 const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+    backgroundColor: "#FAFAFE",
+  },
   loading: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.background,
+    backgroundColor: "#FAFAFE",
+  },
+  navWrap: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8F0",
+  },
+  nav: {
+    width: "100%",
+    maxWidth: 1680,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  navWide: {
+    paddingHorizontal: 28,
+  },
+  logo: {
+    width: 220,
+    height: 68,
+  },
+  logoCompact: {
+    width: 150,
+    height: 52,
+  },
+  navLinks: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 22,
+  },
+  navSpacer: {
+    flex: 1,
+  },
+  navLink: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#8A8AA3",
+  },
+  activeNavLink: {
+    backgroundColor: "#EEF0FF",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  activeNavLinkText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#5B4FE8",
+  },
+  homeButton: {
+    backgroundColor: "#F6F6FB",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  homeButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#14142B",
   },
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#FAFAFE",
   },
   content: {
-    padding: 20,
+    width: "100%",
+    maxWidth: 1200,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 40,
     gap: 16,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: 24,
+    backgroundColor: "#F0EEFF",
+    borderRadius: 24,
+    padding: 24,
+  },
+  headerCompact: {
+    flexDirection: "column",
   },
   headerCopy: {
     flex: 1,
@@ -540,6 +803,11 @@ const styles = StyleSheet.create({
   headerActions: {
     gap: 10,
     alignItems: "flex-end",
+  },
+  headerActionsCompact: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "stretch",
   },
   eyebrow: {
     color: colors.primaryDark,
@@ -560,7 +828,40 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     lineHeight: 21,
-    maxWidth: 260,
+    maxWidth: 560,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 18,
+  },
+  openSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#fff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  doneSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#EAF8EF",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  summaryValue: {
+    color: "#14142B",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  summaryLabel: {
+    color: "#7C7C91",
+    fontSize: 12,
+    fontWeight: "700",
   },
   coinPill: {
     backgroundColor: colors.card,
@@ -571,6 +872,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     minWidth: 92,
     alignItems: "center",
+    flexShrink: 0,
   },
   coinValue: {
     color: colors.coin,
@@ -585,15 +887,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   createTaskButton: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexGrow: 1,
   },
   createTaskButtonText: {
-    color: colors.primaryDark,
+    color: "#fff",
     fontSize: 14,
     fontWeight: "800",
   },
@@ -611,11 +916,17 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   focusTimerCard: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: "#fff",
     borderRadius: 24,
     padding: 18,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "#DCD8FF",
+  },
+  focusTimerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
   focusTimerLabel: {
     color: colors.primaryDark,
@@ -636,6 +947,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+  focusTimerStatus: {
+    color: "#5B4FE8",
+    backgroundColor: "#F0EEFF",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  progressTrack: {
+    width: "100%",
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#E8E8F0",
+    overflow: "hidden",
+    marginTop: 16,
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: "#5B4FE8",
+  },
   focusTimerActions: {
     flexDirection: "row",
     marginTop: 12,
@@ -643,7 +976,7 @@ const styles = StyleSheet.create({
   },
   pomodoroModalContent: {
     backgroundColor: colors.card,
-    padding: 20,
+    padding: 24,
     gap: 12,
   },
   pomodoroModalTitle: {
@@ -663,6 +996,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  pomodoroOptionDisabled: {
+    opacity: 0.45,
   },
   pomodoroOptionLabel: {
     color: colors.primaryDark,
@@ -697,6 +1033,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     gap: 16,
+    position: "relative",
+    paddingRight: 48,
+  },
+  activeTaskCard: {
+    backgroundColor: "#F5F3FF",
+    borderColor: "#8F85F5",
+  },
+  taskCardCompact: {
+    flexWrap: "wrap",
+    alignItems: "flex-start",
   },
   taskCardContent: {
     flex: 1,
@@ -715,15 +1061,21 @@ const styles = StyleSheet.create({
   },
   taskTitle: {
     color: colors.text,
-    fontSize: 24,
+    fontSize: 19,
     fontWeight: "900",
-    lineHeight: 30,
+    lineHeight: 25,
+    marginTop: 3,
   },
   taskMeta: {
     color: colors.textMuted,
-    marginTop: 8,
     fontSize: 14,
     fontWeight: "700",
+  },
+  taskDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 8,
   },
   taskActionButton: {
     backgroundColor: colors.primary,
@@ -733,6 +1085,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minWidth: 132,
+  },
+  taskActionButtonCompact: {
+    width: "100%",
+  },
+  taskActionButtonActive: {
+    backgroundColor: "#8F85F5",
   },
   taskActionButtonText: {
     color: "#fff",
@@ -770,6 +1128,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 2,
   },
   sectionTitle: {
     color: colors.text,
@@ -794,7 +1153,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   completedCard: {
-    backgroundColor: colors.card,
+    backgroundColor: "#FCFCFE",
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
@@ -819,10 +1178,11 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   completedTitle: {
-    color: colors.text,
+    color: "#7C7C91",
     fontSize: 16,
     fontWeight: "800",
     flex: 1,
+    textDecorationLine: "line-through",
   },
   completedDetail: {
     color: colors.textMuted,
@@ -831,13 +1191,13 @@ const styles = StyleSheet.create({
   },
   footerButton: {
     marginTop: 4,
-    backgroundColor: colors.coin,
+    backgroundColor: "#F0EEFF",
     borderRadius: 18,
     paddingVertical: 16,
     alignItems: "center",
   },
   footerButtonText: {
-    color: colors.text,
+    color: colors.primary,
     fontSize: 16,
     fontWeight: "900",
   },
@@ -876,5 +1236,97 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 20,
     elevation: 8,
+    backgroundColor: "#fff",
+  },
+  deleteModalCard: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: "#fff",
+    borderRadius: 22,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  deleteModalTitle: {
+    color: "#14142B",
+    fontSize: 21,
+    fontWeight: "900",
+  },
+  deleteModalText: {
+    color: "#7C7C91",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 7,
+  },
+  deleteModalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 22,
+  },
+  deleteCancelButton: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#F6F6FB",
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  deleteCancelButtonText: {
+    color: "#14142B",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#EF4444",
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  deleteConfirmButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  emptyState: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E8E8F0",
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 34,
+  },
+  emptyStateSmall: {
+    alignItems: "center",
+    backgroundColor: "#FCFCFE",
+    borderRadius: 16,
+    padding: 20,
+  },
+  emptyTitle: {
+    color: "#14142B",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 6,
+  },
+  emptyText: {
+    color: "#7C7C91",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  emptyButton: {
+    backgroundColor: "#5B4FE8",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    marginTop: 16,
+  },
+  emptyButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
   },
 });
