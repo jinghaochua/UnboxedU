@@ -3,10 +3,12 @@ import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestor
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -24,6 +26,8 @@ type LeaderboardUser = {
 
 export default function LeaderboardScreen() {
   const { user, loading: authLoading } = useAuth();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 800;
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,207 +69,568 @@ export default function LeaderboardScreen() {
     return <Redirect href="/login" />;
   }
 
+  const topThree = leaderboard.slice(0, 3);
+  const currentUserRank = leaderboard.findIndex((item) => item.id === user.uid);
+  const currentUser = currentUserRank >= 0 ? leaderboard[currentUserRank] : null;
+
+  const getDisplayName = (item: LeaderboardUser) =>
+    item.username || item.email?.split("@")[0] || "Student";
+
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
-      <View style={styles.header}>
-        <View style={styles.headerTextWrap}>
+    <View style={styles.page}>
+      <View style={styles.navWrap}>
+        <View style={[styles.nav, isWide && styles.navWide]}>
+          <Pressable style={styles.logoRow} onPress={() => router.replace("/")}>
+            <Image
+              source={require("../assets/images/unboxedu-logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </Pressable>
+
+          {isWide ? (
+            <View style={styles.navLinks}>
+              <Pressable onPress={() => router.push("/tasks" as never)}>
+                <Text style={styles.navLink}>Tasks</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push("/mystery" as never)}>
+                <Text style={styles.navLink}>Mystery Boxes</Text>
+              </Pressable>
+              <View style={styles.activeNavLink}>
+                <Text style={styles.activeNavLinkText}>Leaderboard</Text>
+              </View>
+            </View>
+          ) : null}
+
           <Pressable
-            style={styles.backButton}
+            style={styles.homeButton}
             onPress={() => router.replace("/")}
           >
-            <Text style={styles.backButtonText}>Back</Text>
+            <Text style={styles.homeButtonText}>Back to home</Text>
           </Pressable>
-          <Text style={styles.title}>Leaderboard</Text>
-          <Text style={styles.subtitle}>
-            Top students ranked by mystery boxes opened.
-          </Text>
-        </View>
-
-        <View style={styles.badgePill}>
-          <Text style={styles.badgeLabel}>Top Unboxer</Text>
-          <Text style={styles.badgeValue}>
-            {leaderboard.length > 0 ? `#1 ${leaderboard[0].boxesOpened ?? 0} boxes` : "—"}
-          </Text>
         </View>
       </View>
 
-      <View style={styles.card}>
-        {leaderboard.length > 0 ? (
-          leaderboard.map((item, index) => {
-            const rank = index + 1;
-            const isCurrentUser = item.id === user.uid;
-            const displayName =
-              item.username || item.email?.split("@")[0] || "Student";
-            const boxes = item.boxesOpened ?? 0;
+      <ScrollView
+        contentContainerStyle={styles.screen}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.header, isWide && styles.headerWide]}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.eyebrow}>Hall of fame</Text>
+            <Text style={styles.title}>Top Unboxers</Text>
+            <Text style={styles.subtitle}>
+              See who has opened the most mystery boxes and find your place in
+              the rankings.
+            </Text>
+          </View>
 
-            return (
-              <View
-                key={item.id}
-                style={[styles.row, isCurrentUser && styles.currentUserRow]}
-              >
-                <View
-                  style={[
-                    styles.rankBadge,
-                    rank === 1 && styles.rankOne,
-                    rank === 2 && styles.rankTwo,
-                    rank === 3 && styles.rankThree,
-                  ]}
-                >
-                  <Text
+          <View style={styles.yourRankCard}>
+            <Text style={styles.yourRankLabel}>Your rank</Text>
+            <Text style={styles.yourRankValue}>
+              {currentUserRank >= 0 ? `#${currentUserRank + 1}` : "Not ranked"}
+            </Text>
+            <Text style={styles.yourRankBoxes}>
+              {currentUser?.boxesOpened ?? 0} boxes opened
+            </Text>
+          </View>
+        </View>
+
+        {topThree.length > 0 ? (
+          <View style={styles.topSection}>
+            <View style={styles.sectionHeading}>
+              <Text style={styles.sectionTitle}>Leading the board</Text>
+              <Text style={styles.sectionCaption}>This month&apos;s top students</Text>
+            </View>
+
+            <View style={[styles.podium, isWide && styles.podiumWide]}>
+              {topThree.map((item, index) => {
+                const rank = index + 1;
+                const isCurrentUser = item.id === user.uid;
+
+                return (
+                  <View
+                    key={item.id}
                     style={[
-                      styles.rankText,
-                      rank <= 3 && styles.topRankText,
+                      styles.podiumCard,
+                      rank === 1 && styles.firstPlaceCard,
                     ]}
                   >
-                    #{rank}
-                  </Text>
-                </View>
+                    <View
+                      style={[
+                        styles.podiumRank,
+                        rank === 1 && styles.firstPlaceRank,
+                        rank === 2 && styles.secondPlaceRank,
+                        rank === 3 && styles.thirdPlaceRank,
+                      ]}
+                    >
+                      <Text style={styles.podiumRankText}>#{rank}</Text>
+                    </View>
 
-                <View style={styles.content}>
-                  <Text style={styles.userName}>
-                    {displayName} {isCurrentUser ? "(You)" : ""}
-                  </Text>
-                  <Text style={styles.userCoins}>
-                    {boxes} {boxes === 1 ? "box opened" : "boxes opened"}
-                  </Text>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {getDisplayName(item).charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.podiumName} numberOfLines={1}>
+                      {getDisplayName(item)}
+                    </Text>
+                    {isCurrentUser ? (
+                      <Text style={styles.youLabel}>YOU</Text>
+                    ) : null}
+                    <Text style={styles.podiumBoxes}>
+                      {item.boxesOpened ?? 0} boxes opened
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.card}>
+          <View style={styles.tableHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Full rankings</Text>
+              <Text style={styles.sectionCaption}>Top 20 students</Text>
+            </View>
+            <View style={styles.livePill}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>Live</Text>
+            </View>
+          </View>
+
+          {leaderboard.length > 0 ? (
+            leaderboard.map((item, index) => {
+              const rank = index + 1;
+              const isCurrentUser = item.id === user.uid;
+              const boxes = item.boxesOpened ?? 0;
+
+              return (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.row,
+                    isCurrentUser && styles.currentUserRow,
+                  ]}
+                >
+                  <Text style={styles.rowRank}>#{rank}</Text>
+
+                  <View style={styles.smallAvatar}>
+                    <Text style={styles.smallAvatarText}>
+                      {getDisplayName(item).charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+
+                  <View style={styles.content}>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.userName} numberOfLines={1}>
+                        {getDisplayName(item)}
+                      </Text>
+                      {isCurrentUser ? (
+                        <View style={styles.youPill}>
+                          <Text style={styles.youPillText}>You</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.userMeta}>
+                      UnboxedU student
+                    </Text>
+                  </View>
+
+                  <View style={styles.boxCount}>
+                    <Text style={styles.boxCountValue}>{boxes}</Text>
+                    <Text style={styles.boxCountLabel}>
+                      {boxes === 1 ? "box" : "boxes"}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            );
-          })
-        ) : (
-          <Text style={styles.emptyText}>
-            No mystery boxes opened yet.
-          </Text>
-        )}
-      </View>
-    </ScrollView>
+              );
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>The board is empty</Text>
+              <Text style={styles.emptyText}>
+                Open a mystery box to become the first ranked student.
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: "#fff",
+  page: {
+    flex: 1,
+    backgroundColor: "#FAFAFE",
   },
   loading: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FAFAFE",
+  },
+  navWrap: {
     backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8F0",
+  },
+  nav: {
+    width: "100%",
+    maxWidth: 1680,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  navWide: {
+    paddingHorizontal: 28,
+  },
+  logoRow: {
+    flexShrink: 0,
+  },
+  logo: {
+    width: 138,
+    height: 38,
+  },
+  navLinks: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 22,
+  },
+  navLink: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#8A8AA3",
+  },
+  activeNavLink: {
+    backgroundColor: "#EEF0FF",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  activeNavLinkText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#5B4FE8",
+  },
+  homeButton: {
+    backgroundColor: "#F6F6FB",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  homeButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#14142B",
+  },
+  screen: {
+    width: "100%",
+    maxWidth: 1200,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    paddingBottom: 40,
+    gap: 20,
   },
   header: {
-    marginBottom: 20,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
+    backgroundColor: "#F0EEFF",
+    borderRadius: 24,
+    padding: 24,
+    gap: 22,
   },
-  headerTextWrap: {
+  headerWide: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 30,
+    paddingVertical: 28,
+  },
+  headerCopy: {
     flex: 1,
   },
-  backButton: {
-    marginBottom: 12,
-  },
-  backButtonText: {
-    color: colors.primary,
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: "900",
-    color: colors.text,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textMuted,
-  },
-  badgePill: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.primaryLight,
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  badgeLabel: {
+  eyebrow: {
     fontSize: 12,
     fontWeight: "800",
-    color: colors.textMuted,
+    color: "#5B4FE8",
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: "900",
+    color: "#14142B",
+    lineHeight: 43,
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  subtitle: {
+    maxWidth: 570,
+    fontSize: 15,
+    lineHeight: 23,
+    color: "#7C7C91",
+  },
+  yourRankCard: {
+    minWidth: 180,
+    alignSelf: "flex-start",
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: "#E4E0FF",
+  },
+  yourRankLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#8A8AA3",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+  },
+  yourRankValue: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#5B4FE8",
+    marginVertical: 3,
+  },
+  yourRankBoxes: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#7C7C91",
+  },
+  topSection: {
+    gap: 14,
+  },
+  sectionHeading: {
+    paddingHorizontal: 2,
+  },
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: "900",
+    color: "#14142B",
+  },
+  sectionCaption: {
+    fontSize: 13,
+    color: "#8A8AA3",
+    marginTop: 4,
+  },
+  podium: {
+    gap: 12,
+  },
+  podiumWide: {
+    flexDirection: "row",
+  },
+  podiumCard: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E8E8F0",
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+  },
+  firstPlaceCard: {
+    backgroundColor: "#FFFBEE",
+    borderColor: "#F6DF9A",
+  },
+  podiumRank: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
     marginBottom: 4,
   },
-  badgeValue: {
-    fontSize: 16,
+  firstPlaceRank: {
+    backgroundColor: "#FFE7A3",
+  },
+  secondPlaceRank: {
+    backgroundColor: "#ECECF3",
+  },
+  thirdPlaceRank: {
+    backgroundColor: "#FFE4D4",
+  },
+  podiumRankText: {
+    fontSize: 12,
     fontWeight: "900",
-    color: colors.primary,
+    color: "#14142B",
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#5B4FE8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  avatarText: {
+    color: "#fff",
+    fontSize: 23,
+    fontWeight: "900",
+  },
+  podiumName: {
+    maxWidth: "100%",
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#14142B",
+  },
+  youLabel: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#5B4FE8",
+    letterSpacing: 0.8,
+    marginTop: 4,
+  },
+  podiumBoxes: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#8A8AA3",
+    marginTop: 6,
   },
   card: {
     backgroundColor: "#fff",
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: 18,
-    gap: 12,
+    borderColor: "#E8E8F0",
+    padding: 20,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F7",
+  },
+  livePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#EAF8EF",
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#16A34A",
+  },
+  liveText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#16803A",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 14,
+    gap: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 13,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: "#F2F2F7",
+    borderRadius: 14,
   },
   currentUserRow: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
+    backgroundColor: "#F0EEFF",
+    borderBottomColor: "#E4E0FF",
   },
-  rankBadge: {
+  rowRank: {
+    width: 30,
+    fontSize: 13,
+    fontWeight: "900",
+    color: "#8A8AA3",
+  },
+  smallAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#EEF0FF",
     alignItems: "center",
     justifyContent: "center",
   },
-  rankOne: {
-    backgroundColor: "#FEF08A",
-  },
-  rankTwo: {
-    backgroundColor: "#E2E8F0",
-  },
-  rankThree: {
-    backgroundColor: "#FFEDD5",
-  },
-  rankText: {
+  smallAvatarText: {
+    color: "#5B4FE8",
     fontSize: 14,
-    fontWeight: "800",
-    color: colors.textMuted,
-  },
-  topRankText: {
-    color: colors.text,
+    fontWeight: "900",
   },
   content: {
     flex: 1,
   },
-  userName: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: colors.text,
-    marginBottom: 2,
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  userCoins: {
-    fontSize: 13,
-    color: colors.textMuted,
+  userName: {
+    maxWidth: "75%",
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#14142B",
+  },
+  userMeta: {
+    fontSize: 12,
+    color: "#A2A2AF",
+    marginTop: 3,
+  },
+  youPill: {
+    backgroundColor: "#5B4FE8",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  youPillText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  boxCount: {
+    minWidth: 56,
+    alignItems: "flex-end",
+  },
+  boxCountValue: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#14142B",
+  },
+  boxCountLabel: {
+    fontSize: 11,
+    color: "#8A8AA3",
+    marginTop: 1,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 44,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#14142B",
+    marginBottom: 6,
   },
   emptyText: {
-    fontSize: 15,
-    color: colors.textMuted,
-    lineHeight: 22,
+    maxWidth: 360,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    color: "#8A8AA3",
   },
 });
