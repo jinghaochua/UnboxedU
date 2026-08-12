@@ -80,7 +80,7 @@ export async function openBox(count = 1, banner?: string): Promise<Reward[]> {
       tx.update(userRef, {
         level: currentLevel + levelsGained,
         xp: remainingXP,
-        coins: increment(levelsGained * 500),
+        coins: increment(levelsGained * 100),
       });
     }
   });
