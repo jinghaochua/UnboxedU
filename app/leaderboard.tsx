@@ -21,6 +21,7 @@ type LeaderboardUser = {
   username?: string;
   email?: string;
   boxesOpened?: number;
+  level?: number;
   coins?: number;
 };
 
@@ -30,11 +31,12 @@ export default function LeaderboardScreen() {
   const isWide = width >= 800;
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortMode, setSortMode] = useState<"boxes" | "level">("boxes");
 
   useEffect(() => {
     const q = query(
       collection(db, "users"),
-      orderBy("boxesOpened", "desc"),
+      orderBy(sortMode === "boxes" ? "boxesOpened" : "level", "desc"),
       limit(20),
     );
 
@@ -55,7 +57,7 @@ export default function LeaderboardScreen() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [sortMode]);
 
   if (authLoading || loading) {
     return (
@@ -75,6 +77,11 @@ export default function LeaderboardScreen() {
 
   const getDisplayName = (item: LeaderboardUser) =>
     item.username || item.email?.split("@")[0] || "Student";
+
+  const leaderboardLabel =
+    sortMode === "boxes" ? "boxes opened" : "level";
+  const currentUserMetric =
+    sortMode === "boxes" ? currentUser?.boxesOpened ?? 0 : currentUser?.level ?? 1;
 
   return (
     <View style={styles.page}>
@@ -120,8 +127,8 @@ export default function LeaderboardScreen() {
             <Text style={styles.eyebrow}>Hall of fame</Text>
             <Text style={styles.title}>Top Unboxers</Text>
             <Text style={styles.subtitle}>
-              See who has opened the most mystery boxes and find your place in
-              the rankings.
+              See who has opened the most mystery boxes or reached the highest
+              level in the rankings.
             </Text>
           </View>
 
@@ -131,9 +138,47 @@ export default function LeaderboardScreen() {
               {currentUserRank >= 0 ? `#${currentUserRank + 1}` : "Not ranked"}
             </Text>
             <Text style={styles.yourRankBoxes}>
-              {currentUser?.boxesOpened ?? 0} boxes opened
+              {sortMode === "boxes"
+                ? `${currentUserMetric} boxes opened`
+                : `Level ${currentUserMetric}`}
             </Text>
           </View>
+        </View>
+
+        <View style={styles.sortToggleWrap}>
+          <Pressable
+            style={[
+              styles.sortButton,
+              sortMode === "boxes" && styles.sortButtonActive,
+            ]}
+            onPress={() => setSortMode("boxes")}
+          >
+            <Text
+              style={[
+                styles.sortButtonText,
+                sortMode === "boxes" && styles.sortButtonTextActive,
+              ]}
+            >
+              By boxes
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.sortButton,
+              sortMode === "level" && styles.sortButtonActive,
+            ]}
+            onPress={() => setSortMode("level")}
+          >
+            <Text
+              style={[
+                styles.sortButtonText,
+                sortMode === "level" && styles.sortButtonTextActive,
+              ]}
+            >
+              By level
+            </Text>
+          </Pressable>
         </View>
 
         {topThree.length > 0 ? (
@@ -180,7 +225,9 @@ export default function LeaderboardScreen() {
                       <Text style={styles.youLabel}>YOU</Text>
                     ) : null}
                     <Text style={styles.podiumBoxes}>
-                      {item.boxesOpened ?? 0} boxes opened
+                      {sortMode === "boxes"
+                        ? `${item.boxesOpened ?? 0} boxes opened`
+                        : `Level ${item.level ?? 1}`}
                     </Text>
                   </View>
                 );
@@ -206,6 +253,9 @@ export default function LeaderboardScreen() {
               const rank = index + 1;
               const isCurrentUser = item.id === user.uid;
               const boxes = item.boxesOpened ?? 0;
+              const level = item.level ?? 1;
+              const metricValue = sortMode === "boxes" ? boxes : level;
+              const metricLabel = sortMode === "boxes" ? "boxes" : "lvl";
 
               return (
                 <View
@@ -240,9 +290,13 @@ export default function LeaderboardScreen() {
                   </View>
 
                   <View style={styles.boxCount}>
-                    <Text style={styles.boxCountValue}>{boxes}</Text>
+                    <Text style={styles.boxCountValue}>{metricValue}</Text>
                     <Text style={styles.boxCountLabel}>
-                      {boxes === 1 ? "box" : "boxes"}
+                      {sortMode === "boxes"
+                        ? boxes === 1
+                          ? "box"
+                          : "boxes"
+                        : "level"}
                     </Text>
                   </View>
                 </View>
@@ -407,6 +461,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#7C7C91",
+  },
+  sortToggleWrap: {
+    flexDirection: "row",
+    alignSelf: "center",
+    backgroundColor: "#EEF0FF",
+    borderRadius: 999,
+    padding: 4,
+    gap: 4,
+    width: "100%",
+    maxWidth: 420,
+  },
+  sortButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sortButtonActive: {
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  sortButtonText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#7C7C91",
+  },
+  sortButtonTextActive: {
+    color: "#5B4FE8",
   },
   topSection: {
     gap: 14,

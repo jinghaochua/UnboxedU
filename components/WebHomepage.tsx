@@ -2,29 +2,29 @@ import { router } from "expo-router";
 import { signOut } from "firebase/auth";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Easing,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Easing,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
 } from "react-native";
 
-import { colors } from "@/constants/theme";
 import { rewardImages } from "@/constants/rewardImages";
+import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { auth, db } from "@/lib/firebase";
 import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
+    collection,
+    doc,
+    onSnapshot,
+    orderBy,
+    query,
 } from "firebase/firestore";
 
 const seaturtle = require("../assets/images/seaturtle.png");
@@ -118,6 +118,7 @@ export function WebHomepage() {
   const [userStreak, setUserStreak] = useState<number>(0);
   const [boxesOpened, setBoxesOpened] = useState<number>(0);
   const [userLevel, setUserLevel] = useState<number>(1);
+  const [userXP, setUserXP] = useState<number>(0);
 
   const floatAnim = useMemo(() => new Animated.Value(0), []);
   const blinkAnim = useMemo(() => new Animated.Value(0), []);
@@ -227,12 +228,12 @@ export function WebHomepage() {
 
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
-      setUserCoins(snapshot.exists() ? (snapshot.data()?.coins ?? 0) : 0);
-      setUserStreak(snapshot.exists() ? (snapshot.data()?.streak ?? 0) : 0);
-      setBoxesOpened(
-        snapshot.exists() ? (snapshot.data()?.boxesOpened ?? 0) : 0,
-      );
-      setUserLevel(snapshot.exists() ? (snapshot.data()?.level ?? 1) : 1);
+      const data = snapshot.data();
+      setUserCoins(snapshot.exists() ? (data?.coins ?? 0) : 0);
+      setUserStreak(snapshot.exists() ? (data?.streak ?? 0) : 0);
+      setBoxesOpened(snapshot.exists() ? (data?.boxesOpened ?? 0) : 0);
+      setUserLevel(snapshot.exists() ? (data?.level ?? 1) : 1);
+      setUserXP(snapshot.exists() ? (data?.xp ?? 0) : 0);
     });
 
     return unsubscribe;
@@ -299,6 +300,9 @@ export function WebHomepage() {
 
     const incompleteTasksCount = userTasks.filter((task) => !task.done).length;
     const completedTasksCount = userTasks.length - incompleteTasksCount;
+    const XP_PER_LEVEL = 30;
+    const xpProgress = Math.min((userXP / XP_PER_LEVEL) * 100, 100);
+    const xpToNextLevel = Math.max(XP_PER_LEVEL - userXP, 0);
 
     const stats = [
       {
@@ -439,6 +443,27 @@ export function WebHomepage() {
                 />
               </View>
             </View>
+          </View>
+
+          <View style={styles.loggedInXpCard}>
+            <View style={styles.loggedInXpHeaderRow}>
+              <Text style={styles.loggedInXpLabel}>Level {userLevel}</Text>
+              <Text style={styles.loggedInXpValue}>
+                {userXP}/{XP_PER_LEVEL} XP
+              </Text>
+            </View>
+
+            <View style={styles.loggedInXpTrack}>
+              <View
+                style={[styles.loggedInXpFill, { width: `${xpProgress}%` }]}
+              />
+            </View>
+
+            <Text style={styles.loggedInXpHint}>
+              {xpToNextLevel > 0
+                ? `${xpToNextLevel} XP to level ${userLevel + 1}`
+                : `Level ${userLevel + 1} unlocked!`}
+            </Text>
           </View>
 
           <View
@@ -669,6 +694,18 @@ export function WebHomepage() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.loggedInXpCard}>
+          <View style={styles.loggedInXpHeaderRow}>
+            <Text style={styles.loggedInXpLabel}>Level 1</Text>
+            <Text style={styles.loggedInXpValue}>0/30 XP</Text>
+          </View>
+
+          <View style={styles.loggedInXpTrack}>
+            <View style={[styles.loggedInXpFill, { width: "0%" }]} />
+          </View>
+
+          <Text style={styles.loggedInXpHint}>Sign in to start leveling up</Text>
+        </View>
         <View style={[styles.hero, isWide && styles.heroWide]}>
           <View style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
             <View style={styles.badge}>
@@ -1831,6 +1868,55 @@ const styles = StyleSheet.create({
   loggedInMascot: {
     width: 170,
     height: 170,
+  },
+  loggedInXpCard: {
+    maxWidth: 1680,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  loggedInXpHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E8E8F0",
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  loggedInXpLabel: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  loggedInXpValue: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  loggedInXpTrack: {
+    width: "100%",
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: colors.primaryLight,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  loggedInXpFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+  },
+  loggedInXpHint: {
+    marginTop: 10,
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: "center",
   },
 
   loggedInStatsGrid: {
