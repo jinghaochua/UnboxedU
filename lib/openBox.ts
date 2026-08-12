@@ -64,6 +64,26 @@ export async function openBox(count = 1, banner?: string): Promise<Reward[]> {
     });
   });
 
+  // Check for level ups
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(userRef);
+    if (!snap.exists()) return;
+
+    const currentXP = snap.data().xp ?? 0;
+    const currentLevel = snap.data().level ?? 1;
+    const XP_PER_LEVEL = 30;
+
+    const levelsGained = Math.floor(currentXP / XP_PER_LEVEL);
+
+    if (levelsGained > 0) {
+      const remainingXP = currentXP % XP_PER_LEVEL;
+      tx.update(userRef, {
+        level: currentLevel + levelsGained,
+        xp: remainingXP,
+      });
+    }
+  });
+
   const rewardsQuery = banner
     ? query(collection(db, "rewards"), where("banner", "==", banner))
     : collection(db, "rewards");

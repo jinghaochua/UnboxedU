@@ -116,6 +116,7 @@ export function WebHomepage() {
   const [userCoins, setUserCoins] = useState<number>(0);
   const [userStreak, setUserStreak] = useState<number>(0);
   const [boxesOpened, setBoxesOpened] = useState<number>(0);
+  const [userLevel, setUserLevel] = useState<number>(1);
 
   const floatAnim = useMemo(() => new Animated.Value(0), []);
   const blinkAnim = useMemo(() => new Animated.Value(0), []);
@@ -230,6 +231,7 @@ export function WebHomepage() {
       setBoxesOpened(
         snapshot.exists() ? (snapshot.data()?.boxesOpened ?? 0) : 0,
       );
+      setUserLevel(snapshot.exists() ? (snapshot.data()?.level ?? 1) : 1);
     });
 
     return unsubscribe;
@@ -299,8 +301,8 @@ export function WebHomepage() {
 
     const stats = [
       {
-        label: "Streak",
-        value: `${userStreak}`,
+        label: "Level",
+        value: `${userLevel}`,
         cardStyle: styles.loggedInStatCardGreen,
         valueStyle: styles.loggedInStatValueGreen,
       },
