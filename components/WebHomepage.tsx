@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import { colors } from "@/constants/theme";
+import { rewardImages } from "@/constants/rewardImages";
 import { useAuth } from "@/hooks/use-auth";
 import { auth, db } from "@/lib/firebase";
 import {
@@ -587,7 +588,17 @@ export function WebHomepage() {
               {galleryPreviewItems.length > 0 ? (
                 galleryPreviewItems.map((item) => (
                   <View key={item.id} style={styles.galleryRow}>
-                    <View style={styles.galleryThumb} />
+                    <View style={styles.galleryThumb}>
+                      {rewardImages[item.id] ? (
+                        <Image
+                          source={rewardImages[item.id]}
+                          style={styles.galleryThumbImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.galleryThumbFallback} />
+                      )}
+                    </View>
                     <View style={styles.galleryInfo}>
                       <Text style={styles.galleryText}>{item.name}</Text>
                       <Text style={styles.galleryMeta}>
@@ -1448,9 +1459,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   galleryThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 58,
+    height: 58,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+    overflow: "hidden",
+  },
+  galleryThumbImage: {
+    width: "100%",
+    height: "100%",
+  },
+  galleryThumbFallback: {
+    flex: 1,
     backgroundColor: colors.primaryLight,
   },
   galleryText: {
